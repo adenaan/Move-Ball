@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Move Ball Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Move Ball</title>
   <style>
-    body {
+    html, body {
       margin: 0;
-      font-family: 'Arial', sans-serif;
+      padding: 0;
       background: #111;
-      color: white;
+      color: #fff;
+      font-family: Arial, sans-serif;
       text-align: center;
-      overflow: hidden;
+      overflow-x: hidden;
     }
 
     #startScreen, #gameScreen {
@@ -21,13 +22,12 @@
 
     #titleBar {
       font-size: 1.8em;
-      font-weight: bold;
       color: #ffca28;
       text-shadow: 0 0 6px #ffca28, 0 0 12px #ff9800;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 20px;
+      margin: 10px auto;
     }
 
     #titleBall {
@@ -40,11 +40,11 @@
     }
 
     input, button {
-      padding: 10px 20px;
+      padding: 12px;
+      font-size: 1rem;
       margin: 10px;
-      font-size: 1em;
-      border: none;
       border-radius: 6px;
+      border: none;
     }
 
     #startBtn {
@@ -55,22 +55,21 @@
     #tapButton {
       background: #2196f3;
       color: white;
-      box-shadow: 0 0 8px #2196f3;
-    }
-
-    #gameArea {
+      font-size: 1.2em;
       margin-top: 20px;
-      position: relative;
-      height: 200px;
+      width: 80%;
+      max-width: 300px;
+      box-shadow: 0 0 10px #2196f3;
     }
 
     #bar {
       position: relative;
+      margin: 40px auto;
       height: 10px;
-      width: 90%;
-      margin: 50px auto;
-      background: #555;
+      background: #444;
       border-radius: 5px;
+      width: 90%;
+      max-width: 400px;
     }
 
     .ball {
@@ -87,53 +86,48 @@
     #names {
       display: flex;
       justify-content: space-between;
-      padding: 0 30px;
-      font-size: 1.2em;
+      max-width: 400px;
+      margin: 0 auto 10px;
+      font-size: 1.1em;
     }
 
     #scoreBoard {
       margin-top: 20px;
+      font-size: 1em;
     }
 
     #message {
       margin-top: 10px;
       color: #f44336;
+      font-size: 0.9em;
     }
   </style>
 </head>
 <body>
 
-  <!-- Start Screen -->
   <div id="startScreen">
     <div id="titleBar">
       Move Ball <div id="titleBall"></div>
     </div>
-    <input type="text" id="nameInput" placeholder="Enter your name" />
+    <input id="nameInput" placeholder="Enter your name" />
     <button id="startBtn">Start Game</button>
     <div id="message"></div>
   </div>
 
-  <!-- Game Screen -->
   <div id="gameScreen">
     <div id="titleBar">
       Move Ball <div id="titleBall"></div>
     </div>
-
-    <div id="gameArea">
-      <div id="names">
-        <div id="player0Name">Player 1</div>
-        <div id="player1Name">Player 2</div>
-      </div>
-      <div id="bar">
-        <div id="ball" class="ball"></div>
-      </div>
+    <div id="names">
+      <div id="player0Name">Player 1</div>
+      <div id="player1Name">Player 2</div>
     </div>
-
+    <div id="bar">
+      <div id="ball" class="ball"></div>
+    </div>
     <button id="tapButton">TAP!</button>
-
     <div id="scoreBoard">
-      Wins: <span id="wins">0</span> |
-      Losses: <span id="losses">0</span>
+      Wins: <span id="wins">0</span> | Losses: <span id="losses">0</span>
     </div>
   </div>
 
@@ -145,31 +139,36 @@
     let wins = 0;
     let losses = 0;
 
-    const ball = document.getElementById("ball");
+    const startScreen = document.getElementById("startScreen");
+    const gameScreen = document.getElementById("gameScreen");
+    const tapButton = document.getElementById("tapButton");
     const message = document.getElementById("message");
-    const player0Name = document.getElementById("player0Name");
-    const player1Name = document.getElementById("player1Name");
 
-    document.getElementById("startScreen").style.display = "block";
+    startScreen.style.display = "block";
 
     document.getElementById("startBtn").addEventListener("click", () => {
-      const input = document.getElementById("nameInput");
-      if (input.value.trim()) {
-        yourName = input.value.trim();
-        startGame();
-      } else {
-        message.textContent = "Please enter a name to start.";
+      const input = document.getElementById("nameInput").value.trim();
+      if (!input) {
+        message.textContent = "Enter your name to start.";
+        return;
       }
+      yourName = input;
+      startScreen.style.display = "none";
+      gameScreen.style.display = "block";
+      connectWebSocket();
     });
 
-    function startGame() {
-      document.getElementById("startScreen").style.display = "none";
-      document.getElementById("gameScreen").style.display = "block";
-
+    function connectWebSocket() {
       ws = new WebSocket("wss://move-ball-server.glitch.me");
 
       ws.onopen = () => {
         ws.send(JSON.stringify({ type: "name", name: yourName }));
+
+        tapButton.onclick = () => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "tap" }));
+          }
+        };
       };
 
       ws.onmessage = (event) => {
@@ -177,7 +176,6 @@
 
         if (data.type === "init") {
           playerID = data.playerID;
-          message.textContent = `Connected as Player ${playerID + 1}`;
         }
 
         if (data.type === "update") {
@@ -185,53 +183,49 @@
 
           if (data.winner !== null) {
             if (data.winner === playerID) {
-              message.textContent = "🎉 You win!";
+              message.textContent = "🎉 You Win!";
               wins++;
             } else {
-              message.textContent = "😞 You lost.";
+              message.textContent = "😞 You Lost.";
               losses++;
             }
-
             document.getElementById("wins").textContent = wins;
             document.getElementById("losses").textContent = losses;
           }
 
           if (data.names) {
-            otherName = data.names.find((n) => n !== yourName) || "Opponent";
+            otherName = data.names.find(n => n !== yourName) || "Opponent";
             updateNames();
           }
         }
 
         if (data.type === "full") {
-          message.textContent = "Room is full. Try again later.";
+          message.textContent = "Room full. Try again later.";
         }
       };
-
-      document.getElementById("tapButton").addEventListener("click", () => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "tap" }));
-        }
-      });
     }
 
-    function updateBall(position) {
+    function updateBall(pos) {
       const bar = document.getElementById("bar");
       const barWidth = bar.offsetWidth;
-      const percent = (position + 100) / 200;
-      ball.style.left = `${Math.max(0, Math.min(1, percent)) * (barWidth - 30)}px`;
+      const percent = (pos + 100) / 200;
+      const ball = document.getElementById("ball");
+      ball.style.left = `${percent * (barWidth - 30)}px`;
     }
 
     function updateNames() {
+      const p0 = document.getElementById("player0Name");
+      const p1 = document.getElementById("player1Name");
       if (playerID === 0) {
-        player0Name.textContent = yourName;
-        player1Name.textContent = otherName;
+        p0.textContent = yourName;
+        p1.textContent = otherName;
       } else {
-        player0Name.textContent = otherName;
-        player1Name.textContent = yourName;
+        p0.textContent = otherName;
+        p1.textContent = yourName;
       }
     }
 
-    // iPhone zoom prevention
+    // Prevent double-tap zoom on iPhone
     let lastTouch = 0;
     document.addEventListener('touchstart', function (e) {
       const now = new Date().getTime();
