@@ -7,23 +7,24 @@
   <style>
     body {
       margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
       font-family: 'Arial', sans-serif;
-      background: #000;
       color: white;
       text-align: center;
       overflow: hidden;
     }
 
     #game-title {
-      font-size: 2.5em;
+      font-size: 3em;
       margin-top: 1em;
-      text-shadow: 0 0 10px cyan, 0 0 20px cyan;
+      text-shadow: 0 0 15px cyan, 0 0 30px cyan;
     }
 
     #ball-icon {
       display: inline-block;
-      width: 20px;
-      height: 20px;
+      width: 25px;
+      height: 25px;
       background: white;
       border-radius: 50%;
       margin-left: 10px;
@@ -36,66 +37,70 @@
 
     input {
       font-size: 1.2em;
-      padding: 10px;
+      padding: 12px;
       border-radius: 8px;
       border: none;
       width: 80%;
       max-width: 300px;
+      margin-bottom: 20px;
     }
 
     button {
-      margin-top: 1em;
-      font-size: 1.2em;
-      padding: 10px 20px;
+      font-size: 1.5em;
+      padding: 12px 30px;
       border: none;
       border-radius: 10px;
       background: cyan;
       color: black;
       font-weight: bold;
       cursor: pointer;
+      box-shadow: 0 0 10px cyan;
+      margin-top: 10px;
     }
 
     #game-area {
       display: none;
-      position: relative;
       margin-top: 2em;
     }
 
     #bar {
-      width: 80%;
+      width: 90%;
       height: 20px;
       background: white;
-      margin: 2em auto;
+      margin: 3em auto 2em;
       position: relative;
+      border-radius: 10px;
+      overflow: hidden;
     }
 
     #ball {
       position: absolute;
-      top: -10px;
-      width: 20px;
-      height: 20px;
+      top: -5px;
+      width: 30px;
+      height: 30px;
       background: red;
       border-radius: 50%;
-      box-shadow: 0 0 10px red;
+      box-shadow: 0 0 15px red;
       transition: left 0.1s ease;
     }
 
     .tap-btn {
-      font-size: 1.5em;
+      font-size: 2em;
       margin: 1em;
-      padding: 20px 30px;
+      padding: 20px 40px;
       background: lime;
       border: none;
-      border-radius: 15px;
-      box-shadow: 0 0 10px lime;
+      border-radius: 20px;
       font-weight: bold;
+      color: black;
+      box-shadow: 0 0 10px lime;
     }
 
     #result {
-      font-size: 1.5em;
+      font-size: 2em;
       margin-top: 1em;
       color: yellow;
-      text-shadow: 0 0 5px yellow;
+      text-shadow: 0 0 10px yellow;
     }
   </style>
 </head>
@@ -113,9 +118,7 @@
       <div id="ball" style="left: 50%;"></div>
     </div>
 
-    <div>
-      <button class="tap-btn" id="tapBtn">TAP!</button>
-    </div>
+    <button class="tap-btn" id="tapBtn">TAP!</button>
 
     <div id="result"></div>
   </div>
@@ -144,13 +147,20 @@
       socket.send(JSON.stringify({ type: "tap" }));
     });
 
+    tapBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      socket.send(JSON.stringify({ type: "tap" }));
+    });
+
     socket.addEventListener("message", (event) => {
       const data = JSON.parse(event.data);
+
       if (data.type === "init") {
         playerID = data.playerID;
       } else if (data.type === "update") {
         const percent = (data.ball + 100) / 200 * 100;
         ball.style.left = `${percent}%`;
+
         if (data.winner !== null) {
           if (data.winner === playerID) {
             result.textContent = "You Win!";
