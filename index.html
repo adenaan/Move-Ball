@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Tap Push Battle</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tap Ball Game</title>
   <style>
-    html, body {
+    * { box-sizing: border-box; }
+    body {
       margin: 0;
       padding: 0;
       font-family: sans-serif;
@@ -14,149 +15,155 @@
       text-align: center;
       overflow: hidden;
     }
-    #startScreen, #gameScreen {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      padding: 1em;
-    }
-    #startScreen input {
-      margin: 0.5em;
-      padding: 0.5em;
-      font-size: 1.2em;
-    }
-    #startScreen button {
-      padding: 0.7em 2em;
-      font-size: 1.2em;
-      background: #28a;
-      border: none;
-      color: white;
-      border-radius: 10px;
-    }
-    #title {
-      font-size: 2em;
-      margin-bottom: 1em;
-    }
-    #bar {
-      width: 80%;
-      height: 10px;
-      background: #fff;
-      margin: 2em auto;
-      position: relative;
-    }
-    #ball {
-      width: 30px;
-      height: 30px;
-      background: red;
-      border-radius: 50%;
+    #start-screen, #game-screen {
       position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      transition: left 0.1s;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
     }
-    #tapBtn {
-      padding: 1em 2em;
-      font-size: 1.5em;
-      background: #4caf50;
-      color: white;
+    #game-title {
+      font-size: 2em;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px cyan;
+    }
+    input {
+      padding: 0.5em;
+      font-size: 1em;
+      margin: 10px;
+    }
+    button {
+      padding: 0.75em 2em;
+      font-size: 1.2em;
+      background: cyan;
       border: none;
-      border-radius: 15px;
-      margin-top: 2em;
+      border-radius: 10px;
+      margin-top: 10px;
+      user-select: none;
       touch-action: manipulation;
     }
-    .names {
-      margin-top: 1em;
-      font-size: 1em;
+    #ball-container {
+      position: relative;
+      width: 100%;
+      height: 60px;
+      background: #333;
+      border-radius: 30px;
+      overflow: hidden;
+      margin-bottom: 20px;
     }
-    .glow-title {
-      font-size: 2.2em;
-      color: cyan;
-      text-shadow: 0 0 10px cyan;
+    #ball {
+      width: 40px;
+      height: 40px;
+      background: cyan;
+      border-radius: 50%;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    #player-names {
+      margin: 1em;
+    }
+    #winner-message {
+      font-size: 1.5em;
+      margin-top: 10px;
+      color: yellow;
     }
   </style>
 </head>
 <body>
+  <div id="start-screen">
+    <div id="game-title">🔥 TapBall 🔥</div>
+    <input type="text" id="name-input" placeholder="Enter your name" />
+    <button id="start-button">Start</button>
+    <div id="full-message" style="color: red; display: none;">Room full. Try again later.</div>
+  </div>
 
-<div id="startScreen">
-  <div class="glow-title">TAP PUSH BATTLE ⚽</div>
-  <input id="playerName" placeholder="Enter your name" />
-  <button id="startBtn">Start Game</button>
-</div>
+  <div id="game-screen" style="display: none;">
+    <div id="player-names">Waiting for opponent...</div>
+    <div id="ball-container">
+      <div id="ball"></div>
+    </div>
+    <button id="tap-button">TAP!</button>
+    <div id="winner-message"></div>
+  </div>
 
-<div id="gameScreen">
-  <div id="title" class="glow-title">TAP PUSH BATTLE ⚽</div>
-  <div id="bar"><div id="ball"></div></div>
-  <button id="tapBtn">TAP!</button>
-  <div class="names" id="playerNames"></div>
-  <div class="names" id="winMessage"></div>
-</div>
+  <script>
+    let ws;
+    let playerID;
+    let players = ["", ""];
+    let scores = [0, 0];
 
-<script>
-  const ws = new WebSocket("wss://move-ball-server.glitch.me");
-  let playerID = null;
-  let myName = "";
+    const startScreen = document.getElementById("start-screen");
+    const gameScreen = document.getElementById("game-screen");
+    const nameInput = document.getElementById("name-input");
+    const startButton = document.getElementById("start-button");
+    const fullMessage = document.getElementById("full-message");
+    const playerNames = document.getElementById("player-names");
+    const winnerMessage = document.getElementById("winner-message");
+    const ball = document.getElementById("ball");
+    const tapButton = document.getElementById("tap-button");
 
-  const startScreen = document.getElementById("startScreen");
-  const gameScreen = document.getElementById("gameScreen");
-  const startBtn = document.getElementById("startBtn");
-  const playerInput = document.getElementById("playerName");
-  const tapBtn = document.getElementById("tapBtn");
-  const ball = document.getElementById("ball");
-  const playerNames = document.getElementById("playerNames");
-  const winMessage = document.getElementById("winMessage");
+    startButton.addEventListener("click", () => {
+      const name = nameInput.value.trim();
+      if (!name) return;
 
-  let players = ["Waiting...", "Waiting..."];
-  let scores = [0, 0];
+      ws = new WebSocket("wss://move-ball-server.glitch.me");
 
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: "name", name }));
+      };
 
-    if (data.type === "init") {
-      playerID = data.playerID;
-      startScreen.style.display = "flex";
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "full") {
+          fullMessage.style.display = "block";
+          return;
+        }
+
+        if (data.type === "init") {
+          playerID = data.playerID;
+          startScreen.style.display = "none";
+          gameScreen.style.display = "flex";
+        }
+
+        if (data.type === "players") {
+          players = data.players;
+          updatePlayerNames();
+        }
+
+        if (data.type === "update") {
+          updateBall(data.ball);
+          if (data.winner !== null) {
+            winnerMessage.textContent = `${players[data.winner]} wins!`;
+            scores[data.winner]++;
+            updatePlayerNames();
+          } else {
+            winnerMessage.textContent = "";
+          }
+        }
+      };
+    });
+
+    function updateBall(position) {
+      const px = 50 + position / 2;
+      ball.style.left = `${px}%`;
     }
 
-    if (data.type === "update") {
-      const position = 50 + data.ball;
-      ball.style.left = position + "%";
-      winMessage.textContent = data.winner !== null ? `${players[data.winner]} wins!` : "";
-      if (data.winner !== null) {
-        scores[data.winner]++;
+    function updatePlayerNames() {
+      const displayNames = players.map((name, i) => `${name} (P${i + 1}) [${scores[i]}]`);
+      playerNames.textContent = `${displayNames[0]} vs ${displayNames[1]}`;
+    }
+
+    tapButton.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      if (ws && playerID !== undefined) {
+        ws.send(JSON.stringify({ type: "tap" }));
       }
-      updatePlayerNames();
-    }
-
-    if (data.type === "names") {
-      players = data.names;
-      updatePlayerNames();
-    }
-
-    if (data.type === "full") {
-      alert("Room full. Try again later.");
-    }
-  };
-
-  startBtn.onclick = () => {
-    if (playerInput.value.trim() === "") return;
-    myName = playerInput.value.trim();
-    ws.send(JSON.stringify({ type: "name", name: myName }));
-    startScreen.style.display = "none";
-    gameScreen.style.display = "flex";
-  };
-
-  tapBtn.ontouchstart = tapBtn.onclick = () => {
-    if (playerID !== null) {
-      ws.send(JSON.stringify({ type: "tap", playerID }));
-    }
-  };
-
-  function updatePlayerNames() {
-    playerNames.textContent = `${players[0]} (${scores[0]}) vs ${players[1]} (${scores[1]})`;
-  }
-</script>
-
+    }, { passive: false });
+  </script>
 </body>
 </html>
