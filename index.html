@@ -14,8 +14,12 @@
       overflow: hidden;
     }
 
+    #startScreen, #gameScreen {
+      display: none;
+      padding: 20px;
+    }
+
     #titleBar {
-      padding: 20px 10px 10px;
       font-size: 1.8em;
       font-weight: bold;
       color: #ffca28;
@@ -23,6 +27,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      margin-bottom: 20px;
     }
 
     #titleBall {
@@ -32,6 +37,25 @@
       background: #ffca28;
       border-radius: 50%;
       box-shadow: 0 0 10px #ffca28, 0 0 20px #ff9800;
+    }
+
+    input, button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 1em;
+      border: none;
+      border-radius: 6px;
+    }
+
+    #startBtn {
+      background: #4caf50;
+      color: white;
+    }
+
+    #tapButton {
+      background: #2196f3;
+      color: white;
+      box-shadow: 0 0 8px #2196f3;
     }
 
     #gameArea {
@@ -58,7 +82,6 @@
       border-radius: 50%;
       transition: left 0.1s ease;
       box-shadow: 0 0 10px #ffca28, 0 0 20px #ff9800;
-      z-index: 10;
     }
 
     #names {
@@ -68,74 +91,54 @@
       font-size: 1.2em;
     }
 
-    #tapButton {
-      margin-top: 30px;
-      padding: 15px 30px;
-      font-size: 1.2em;
-      background: #2196f3;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      box-shadow: 0 0 8px #2196f3;
-      touch-action: manipulation;
-    }
-
     #scoreBoard {
       margin-top: 20px;
-      font-size: 1em;
     }
 
     #message {
       margin-top: 10px;
       color: #f44336;
     }
-
-    input {
-      padding: 10px;
-      border-radius: 5px;
-      border: none;
-      margin: 10px;
-      font-size: 1em;
-    }
-
-    button {
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
-  <div id="titleBar">
-    Move Ball
-    <div id="titleBall"></div>
-  </div>
 
-  <div id="gameArea">
-    <div id="names">
-      <div id="player0Name">Player 1</div>
-      <div id="player1Name">Player 2</div>
+  <!-- Start Screen -->
+  <div id="startScreen">
+    <div id="titleBar">
+      Move Ball <div id="titleBall"></div>
     </div>
-    <div id="bar">
-      <div id="ball" class="ball"></div>
-    </div>
-  </div>
-
-  <button id="tapButton">TAP!</button>
-
-  <div id="scoreBoard">
-    Wins: <span id="wins">0</span> |
-    Losses: <span id="losses">0</span>
-  </div>
-
-  <div>
     <input type="text" id="nameInput" placeholder="Enter your name" />
-    <button onclick="sendName()">Submit Name</button>
+    <button id="startBtn">Start Game</button>
+    <div id="message"></div>
   </div>
 
-  <div id="message"></div>
+  <!-- Game Screen -->
+  <div id="gameScreen">
+    <div id="titleBar">
+      Move Ball <div id="titleBall"></div>
+    </div>
+
+    <div id="gameArea">
+      <div id="names">
+        <div id="player0Name">Player 1</div>
+        <div id="player1Name">Player 2</div>
+      </div>
+      <div id="bar">
+        <div id="ball" class="ball"></div>
+      </div>
+    </div>
+
+    <button id="tapButton">TAP!</button>
+
+    <div id="scoreBoard">
+      Wins: <span id="wins">0</span> |
+      Losses: <span id="losses">0</span>
+    </div>
+  </div>
 
   <script>
-    const ws = new WebSocket("wss://move-ball-server.glitch.me");
-
+    let ws;
     let playerID = null;
     let yourName = "You";
     let otherName = "Opponent";
@@ -146,6 +149,70 @@
     const message = document.getElementById("message");
     const player0Name = document.getElementById("player0Name");
     const player1Name = document.getElementById("player1Name");
+
+    document.getElementById("startScreen").style.display = "block";
+
+    document.getElementById("startBtn").addEventListener("click", () => {
+      const input = document.getElementById("nameInput");
+      if (input.value.trim()) {
+        yourName = input.value.trim();
+        startGame();
+      } else {
+        message.textContent = "Please enter a name to start.";
+      }
+    });
+
+    function startGame() {
+      document.getElementById("startScreen").style.display = "none";
+      document.getElementById("gameScreen").style.display = "block";
+
+      ws = new WebSocket("wss://move-ball-server.glitch.me");
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: "name", name: yourName }));
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "init") {
+          playerID = data.playerID;
+          message.textContent = `Connected as Player ${playerID + 1}`;
+        }
+
+        if (data.type === "update") {
+          updateBall(data.ball);
+
+          if (data.winner !== null) {
+            if (data.winner === playerID) {
+              message.textContent = "🎉 You win!";
+              wins++;
+            } else {
+              message.textContent = "😞 You lost.";
+              losses++;
+            }
+
+            document.getElementById("wins").textContent = wins;
+            document.getElementById("losses").textContent = losses;
+          }
+
+          if (data.names) {
+            otherName = data.names.find((n) => n !== yourName) || "Opponent";
+            updateNames();
+          }
+        }
+
+        if (data.type === "full") {
+          message.textContent = "Room is full. Try again later.";
+        }
+      };
+
+      document.getElementById("tapButton").addEventListener("click", () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "tap" }));
+        }
+      });
+    }
 
     function updateBall(position) {
       const bar = document.getElementById("bar");
@@ -164,61 +231,11 @@
       }
     }
 
-    function sendName() {
-      const input = document.getElementById("nameInput");
-      if (input.value.trim()) {
-        yourName = input.value.trim();
-        updateNames();
-        ws.send(JSON.stringify({ type: "name", name: yourName }));
-      }
-    }
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.type === "init") {
-        playerID = data.playerID;
-        message.textContent = `Connected as Player ${playerID + 1}`;
-      }
-
-      if (data.type === "update") {
-        updateBall(data.ball);
-
-        if (data.winner !== null) {
-          if (data.winner === playerID) {
-            message.textContent = "🎉 You win!";
-            wins++;
-          } else {
-            message.textContent = "😞 You lost.";
-            losses++;
-          }
-
-          document.getElementById("wins").textContent = wins;
-          document.getElementById("losses").textContent = losses;
-        }
-
-        if (data.names) {
-          otherName = data.names.find((n) => n !== yourName) || "Opponent";
-          updateNames();
-        }
-      }
-
-      if (data.type === "full") {
-        message.textContent = "Room is full. Try again later.";
-      }
-    };
-
-    document.getElementById("tapButton").addEventListener("click", () => {
-      ws.send(JSON.stringify({ type: "tap" }));
-    });
-
-    // Prevent double-tap zoom on iPhone
+    // iPhone zoom prevention
     let lastTouch = 0;
     document.addEventListener('touchstart', function (e) {
       const now = new Date().getTime();
-      if (now - lastTouch <= 300) {
-        e.preventDefault();
-      }
+      if (now - lastTouch <= 300) e.preventDefault();
       lastTouch = now;
     }, { passive: false });
   </script>
