@@ -1,215 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>PushBall Duel</title>
+  <meta charset="UTF-8">
+  <title>Two Player Game</title>
   <style>
     body {
-      margin: 0;
-      padding: 0;
-      background: #111;
-      color: #fff;
-      font-family: 'Segoe UI', sans-serif;
-      text-align: center;
-      overflow: hidden;
+      font-family: Arial, sans-serif;
+      padding: 2em;
+      background-color: #f4f4f4;
     }
-    .glow {
-      font-size: 2.5rem;
-      color: #fff;
-      text-shadow: 0 0 8px #00f, 0 0 16px #0ff;
-      margin-top: 20px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-    }
-    .ball-icon {
-      width: 30px;
-      height: 30px;
-      background: radial-gradient(circle at 30% 30%, #0ff, #00f);
-      border-radius: 50%;
-    }
-    #game {
-      display: none;
-      margin-top: 20px;
-    }
-    #bar {
-      width: 80%;
-      height: 20px;
-      background: #333;
-      margin: 30px auto;
-      position: relative;
-      border-radius: 10px;
-    }
-    #ball {
-      width: 30px;
-      height: 30px;
-      background: #0ff;
-      border-radius: 50%;
-      position: absolute;
-      top: -5px;
-      transition: left 0.1s ease-out;
-    }
-    .name-labels {
-      display: flex;
-      justify-content: space-between;
-      width: 80%;
-      margin: 0 auto 20px;
-      font-weight: bold;
-    }
-    .tapBtn {
-      font-size: 1.5rem;
-      padding: 15px 30px;
-      background: #0ff;
-      color: #111;
-      border: none;
+    .player-box {
+      background: white;
+      padding: 1em;
+      margin: 1em 0;
       border-radius: 8px;
-      touch-action: manipulation;
-      user-select: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .tapBtn:active {
-      background: #0cc;
-    }
-    #entry {
-      margin-top: 60px;
-    }
-    input {
-      padding: 10px;
-      font-size: 1rem;
-      border-radius: 5px;
-      border: none;
-    }
-    button {
-      margin-top: 10px;
-      font-size: 1.2rem;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      background: #0ff;
-      color: #111;
-      touch-action: manipulation;
-      user-select: none;
-    }
-    .score {
-      margin-top: 10px;
-      font-size: 1.1rem;
-    }
-    #message {
-      margin-top: 10px;
-      font-size: 1.2rem;
-      color: #0f0;
+    h1 {
+      color: #333;
     }
   </style>
 </head>
 <body>
-  <div class="glow">
-    <div class="ball-icon"></div>
-    PushBall Duel
-    <div class="ball-icon"></div>
-  </div>
+  <h1>Welcome to the Game</h1>
 
-  <div id="entry">
-    <input type="text" id="nameInput" placeholder="Enter your name" />
-    <br />
-    <button onclick="startGame()">Start</button>
-    <div id="entryMsg" style="margin-top: 10px; color: #f00;"></div>
-  </div>
-
-  <div id="game">
-    <div class="name-labels">
-      <div id="p1Name">Player 1</div>
-      <div id="p2Name">Player 2</div>
-    </div>
-    <div id="bar">
-      <div id="ball"></div>
-    </div>
-    <button class="tapBtn" id="tapBtn">TAP!</button>
-    <div class="score" id="scoreBoard">Wins: 0 | Losses: 0</div>
-    <div id="message"></div>
+  <div class="player-box">
+    <p><strong>Player One:</strong> <span id="playerOneName">Loading...</span></p>
+    <p><strong>Player Two:</strong> <span id="playerTwoName">Loading...</span></p>
   </div>
 
   <script>
-    let socket;
-    let playerID;
-    let playerName;
-    let names = ["Player 1", "Player 2"];
-    let wins = 0;
-    let losses = 0;
-
-    function startGame() {
-      const name = document.getElementById("nameInput").value.trim();
-      if (!name) return;
-
-      playerName = name;
-      socket = new WebSocket("wss://move-ball-server.glitch.me");
-      socket.onopen = () => {
-        socket.send(JSON.stringify({ type: "name", name }));
-      };
-
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.type === "full") {
-          document.getElementById("entryMsg").innerText = "Room is full. Try later.";
-        }
-
-        if (data.type === "init") {
-          playerID = data.playerID;
-          names[playerID] = playerName;
-          document.getElementById("entry").style.display = "none";
-          document.getElementById("game").style.display = "block";
-          updateNames();
-        }
-
-        if (data.type === "names") {
-          names = data.names;
-          updateNames();
-        }
-
-        if (data.type === "update") {
-          const ball = document.getElementById("ball");
-          const pos = 0.5 + data.ball / 200;
-          const bar = document.getElementById("bar");
-          ball.style.left = `${(bar.clientWidth - ball.clientWidth) * pos}px`;
-
-          const msg = document.getElementById("message");
-          if (data.winner !== null) {
-            if (data.winner === playerID) {
-              wins++;
-              msg.innerText = "You win!";
-              msg.style.color = "#0f0";
-            } else {
-              losses++;
-              msg.innerText = "You lose!";
-              msg.style.color = "#f00";
-            }
-            updateScore();
-            setTimeout(() => (msg.innerText = ""), 2000);
-          }
-        }
-      };
-    }
-
-    function updateNames() {
-      document.getElementById("p1Name").innerText = names[0] || "Player 1";
-      document.getElementById("p2Name").innerText = names[1] || "Player 2";
-    }
-
-    function updateScore() {
-      document.getElementById("scoreBoard").innerText = `Wins: ${wins} | Losses: ${losses}`;
-    }
-
-    function handleTap(e) {
-      e.preventDefault();
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: "tap" }));
-      }
-    }
-
-    const tapBtn = document.getElementById("tapBtn");
-    tapBtn.addEventListener("touchstart", handleTap);
-    tapBtn.addEventListener("click", handleTap);
-  </script>
-</body>
-</html>
+    // Example: these would be passed from the server or set by player input
+    const playerOne
