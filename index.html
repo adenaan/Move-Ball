@@ -95,6 +95,11 @@
       margin-top: 10px;
       font-size: 1.1rem;
     }
+    #message {
+      margin-top: 10px;
+      font-size: 1.2rem;
+      color: #0f0;
+    }
   </style>
 </head>
 <body>
@@ -113,19 +118,21 @@
 
   <div id="game">
     <div class="name-labels">
-      <div id="p1Name"></div>
-      <div id="p2Name"></div>
+      <div id="p1Name">Player 1</div>
+      <div id="p2Name">Player 2</div>
     </div>
     <div id="bar">
       <div id="ball"></div>
     </div>
     <button class="tapBtn" id="tapBtn">TAP!</button>
-    <div class="score" id="scoreBoard"></div>
+    <div class="score" id="scoreBoard">Wins: 0 | Losses: 0</div>
+    <div id="message"></div>
   </div>
 
   <script>
     let socket;
     let playerID;
+    let playerName;
     let names = ["Player 1", "Player 2"];
     let wins = 0;
     let losses = 0;
@@ -134,6 +141,7 @@
       const name = document.getElementById("nameInput").value.trim();
       if (!name) return;
 
+      playerName = name;
       socket = new WebSocket("wss://move-ball-server.glitch.me");
       socket.onopen = () => {
         socket.send(JSON.stringify({ type: "name", name }));
@@ -148,30 +156,44 @@
 
         if (data.type === "init") {
           playerID = data.playerID;
-          names[playerID] = name;
+          names[playerID] = playerName;
           document.getElementById("entry").style.display = "none";
           document.getElementById("game").style.display = "block";
+          updateNames();
         }
 
         if (data.type === "names") {
           names = data.names;
-          document.getElementById("p1Name").innerText = names[0] || "Player 1";
-          document.getElementById("p2Name").innerText = names[1] || "Player 2";
+          updateNames();
         }
 
         if (data.type === "update") {
           const ball = document.getElementById("ball");
-          const pos = 0.5 + data.ball / 200; // normalize
+          const pos = 0.5 + data.ball / 200;
           const bar = document.getElementById("bar");
           ball.style.left = `${(bar.clientWidth - ball.clientWidth) * pos}px`;
 
+          const msg = document.getElementById("message");
           if (data.winner !== null) {
-            if (data.winner === playerID) wins++;
-            else losses++;
+            if (data.winner === playerID) {
+              wins++;
+              msg.innerText = "You win!";
+              msg.style.color = "#0f0";
+            } else {
+              losses++;
+              msg.innerText = "You lose!";
+              msg.style.color = "#f00";
+            }
             updateScore();
+            setTimeout(() => (msg.innerText = ""), 2000);
           }
         }
       };
+    }
+
+    function updateNames() {
+      document.getElementById("p1Name").innerText = names[0] || "Player 1";
+      document.getElementById("p2Name").innerText = names[1] || "Player 2";
     }
 
     function updateScore() {
