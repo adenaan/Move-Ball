@@ -2,108 +2,126 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Move Ball Duel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Move Ball Game</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      height: 100%;
       font-family: sans-serif;
       background: #111;
-      color: #fff;
+      color: white;
+      text-align: center;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    #game {
       display: flex;
       flex-direction: column;
       justify-content: center;
-      align-items: center;
-      height: 100vh;
-      text-align: center;
+      height: 100%;
     }
-    #status {
-      margin-bottom: 20px;
-    }
+
     #ball {
-      width: 200px;
-      height: 20px;
-      background: #444;
-      position: relative;
-      margin: 20px auto;
+      font-size: 32px;
+      margin: 20px;
     }
-    #marker {
-      width: 20px;
-      height: 20px;
-      background: red;
-      border-radius: 50%;
-      position: absolute;
-      top: -5px;
-      left: 50%;
-      transform: translateX(-50%);
-      transition: left 0.1s ease-out;
-    }
-    button {
-      padding: 15px 30px;
-      font-size: 20px;
-      border: none;
-      border-radius: 10px;
-      background: #28a;
+
+    #tap {
+      font-size: 24px;
+      padding: 40px;
+      margin: 20px;
+      background: #3498db;
       color: white;
-      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      width: 80%;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      transition: transform 0.1s;
+    }
+
+    #tap:active {
+      transform: scale(0.95);
+    }
+
+    #info {
+      margin-top: 20px;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
-  <h1>Tap Duel!</h1>
-  <div id="status">Connecting...</div>
-  <div id="ball">
-    <div id="marker"></div>
+  <div id="game">
+    <h1>🏐 Move Ball</h1>
+    <div id="ball">Ball Position: 0</div>
+    <button id="tap">TAP!</button>
+    <div id="info">Waiting for another player...</div>
   </div>
-  <button id="tapButton" disabled>Tap!</button>
 
   <script>
-    const ws = new WebSocket("wss://move-ball-server.glitch.me");
-
+    let ws;
     let playerID = null;
+    let lastTap = 0;
 
-    const status = document.getElementById("status");
-    const button = document.getElementById("tapButton");
-    const marker = document.getElementById("marker");
+    const ballDisplay = document.getElementById('ball');
+    const info = document.getElementById('info');
+    const tapButton = document.getElementById('tap');
 
-    ws.onopen = () => {
-      status.textContent = "Waiting for opponent...";
-    };
+    function connect() {
+      ws = new WebSocket("wss://move-ball-server.glitch.me");
 
-    ws.onmessage = (msg) => {
-      const data = JSON.parse(msg.data);
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
 
-      if (data.type === "init") {
-        playerID = data.playerID;
-        status.textContent = `You are Player ${playerID + 1}`;
-        button.disabled = false;
-      }
-
-      if (data.type === "update") {
-        const pos = data.ball; // from -100 to 100
-        const percent = 50 + pos / 2; // convert to 0-100%
-        marker.style.left = `${percent}%`;
-
-        if (data.winner !== null) {
-          if (data.winner === playerID) {
-            alert("🎉 You win!");
-          } else {
-            alert("😞 You lose!");
-          }
-          button.disabled = true;
+        if (data.type === "init") {
+          playerID = data.playerID;
+          info.textContent = "You are Player " + (playerID + 1);
         }
-      }
 
-      if (data.type === "full") {
-        status.textContent = "Room is full. Try again later.";
-      }
-    };
+        if (data.type === "update") {
+          ballDisplay.textContent = "Ball Position: " + data.ball;
+          if (data.winner !== null) {
+            if (data.winner === playerID) {
+              info.textContent = "🎉 You Win!";
+            } else {
+              info.textContent = "😢 You Lose!";
+            }
+          }
+        }
 
-    button.addEventListener("click", () => {
-      if (ws.readyState === WebSocket.OPEN) {
+        if (data.type === "full") {
+          info.textContent = "Game room full. Try again later.";
+          tapButton.disabled = true;
+        }
+      };
+
+      ws.onclose = () => {
+        info.textContent = "🔌 Disconnected. Refresh to try again.";
+        tapButton.disabled = true;
+      };
+    }
+
+    // Prevent iPhone double-tap zoom
+    window.addEventListener('touchend', function (e) {
+      const now = new Date().getTime();
+      if (now - lastTap < 300) {
+        e.preventDefault();
+      }
+      lastTap = now;
+    });
+
+    tapButton.addEventListener('click', () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "tap" }));
       }
     });
+
+    connect();
   </script>
 </body>
 </html>
