@@ -19,7 +19,7 @@
     }
 
     #game {
-      display: flex;
+      display: none;
       flex-direction: column;
       justify-content: center;
       height: 100%;
@@ -61,43 +61,85 @@
     }
 
     #info {
-      margin-top: 20px;
+      margin-top: 10px;
       font-size: 16px;
     }
 
     #stats {
-      margin-top: 10px;
+      margin-top: 5px;
       font-size: 14px;
       color: #ccc;
+    }
+
+    #setup {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100%;
+    }
+
+    input[type="text"] {
+      padding: 12px;
+      font-size: 18px;
+      margin: 20px auto;
+      width: 80%;
+      max-width: 300px;
+      border-radius: 8px;
+      border: none;
+      text-align: center;
+    }
+
+    button#startGame {
+      padding: 14px;
+      font-size: 20px;
+      margin: 10px auto;
+      width: 80%;
+      max-width: 300px;
+      background: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
-  <div id="game">
+  <div id="setup">
     <h1>🏐 Move Ball</h1>
+    <p>Enter your name to begin:</p>
+    <input type="text" id="playerNameInput" placeholder="Your name" />
+    <button id="startGame">Start Game</button>
+  </div>
+
+  <div id="game">
     <div id="bar-container">
       <div id="ball"></div>
     </div>
     <button id="tap">TAP!</button>
-    <div id="info">Waiting for another player...</div>
+    <div id="info">Waiting...</div>
     <div id="stats">Wins: 0 | Losses: 0</div>
   </div>
 
   <script>
     let ws;
     let playerID = null;
+    let playerName = "";
+    let otherName = "Opponent";
     let lastTap = 0;
 
-    const ball = document.getElementById('ball');
-    const info = document.getElementById('info');
-    const tapButton = document.getElementById('tap');
-    const stats = document.getElementById('stats');
+    const setup = document.getElementById("setup");
+    const game = document.getElementById("game");
+    const input = document.getElementById("playerNameInput");
+    const startBtn = document.getElementById("startGame");
+    const ball = document.getElementById("ball");
+    const info = document.getElementById("info");
+    const tapButton = document.getElementById("tap");
+    const stats = document.getElementById("stats");
 
     function updateBall(position) {
-      const barWidth = document.getElementById('bar-container').offsetWidth;
+      const barWidth = document.getElementById("bar-container").offsetWidth;
       const ballWidth = ball.offsetWidth;
       const px = ((position + 100) / 200) * (barWidth - ballWidth);
-      ball.style.left = px + 'px';
+      ball.style.left = px + "px";
     }
 
     function loadStats() {
@@ -121,21 +163,35 @@
       loadStats();
     }
 
-    function connect() {
+    function connectWithName(name) {
       ws = new WebSocket("wss://move-ball-server.glitch.me");
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: "join", name }));
+      };
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
 
         if (data.type === "init") {
           playerID = data.playerID;
-          info.textContent = "You are Player " + (playerID + 1);
+          playerName = data.yourName;
+          otherName = data.otherName || "Opponent";
+          info.textContent = `You: ${playerName} vs ${otherName}`;
+        }
+
+        if (data.type === "names") {
+          if (data.players) {
+            otherName = data.players.find((n, i) => i !== playerID);
+            info.textContent = `You: ${playerName} vs ${otherName}`;
+          }
         }
 
         if (data.type === "update") {
           updateBall(data.ball);
           if (data.winner !== null) {
-            info.textContent = data.winner === playerID ? "🎉 You Win!" : "😢 You Lose!";
+            const isWin = data.winner === playerID;
+            info.textContent = isWin ? `🎉 ${playerName} Wins!` : `😢 ${otherName} Wins!`;
             recordResult(data.winner);
           }
         }
@@ -152,12 +208,10 @@
       };
     }
 
-    // Prevent iOS zoom and allow rapid tap
+    // Prevent iOS zoom + allow rapid tapping
     window.addEventListener('touchstart', function (e) {
       const now = new Date().getTime();
-      if (now - lastTap < 300) {
-        e.preventDefault();
-      }
+      if (now - lastTap < 300) e.preventDefault();
       lastTap = now;
     }, { passive: false });
 
@@ -173,8 +227,13 @@
       }
     });
 
-    connect();
-    loadStats();
+    startBtn.addEventListener("click", () => {
+      const name = input.value.trim() || "Player";
+      setup.style.display = "none";
+      game.style.display = "flex";
+      connectWithName(name);
+      loadStats();
+    });
   </script>
 </body>
 </html>
