@@ -25,9 +25,27 @@
       height: 100%;
     }
 
+    #bar-container {
+      width: 80%;
+      max-width: 400px;
+      height: 30px;
+      background: #555;
+      border-radius: 15px;
+      margin: 40px auto;
+      position: relative;
+      overflow: hidden;
+    }
+
     #ball {
-      font-size: 32px;
-      margin: 20px;
+      width: 30px;
+      height: 30px;
+      background: #f1c40f;
+      border-radius: 50%;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: left 0.1s ease-out;
     }
 
     #tap {
@@ -40,13 +58,6 @@
       border-radius: 12px;
       width: 80%;
       max-width: 300px;
-      margin-left: auto;
-      margin-right: auto;
-      transition: transform 0.1s;
-    }
-
-    #tap:active {
-      transform: scale(0.95);
     }
 
     #info {
@@ -58,7 +69,9 @@
 <body>
   <div id="game">
     <h1>🏐 Move Ball</h1>
-    <div id="ball">Ball Position: 0</div>
+    <div id="bar-container">
+      <div id="ball"></div>
+    </div>
     <button id="tap">TAP!</button>
     <div id="info">Waiting for another player...</div>
   </div>
@@ -68,9 +81,17 @@
     let playerID = null;
     let lastTap = 0;
 
-    const ballDisplay = document.getElementById('ball');
+    const ball = document.getElementById('ball');
     const info = document.getElementById('info');
     const tapButton = document.getElementById('tap');
+
+    function updateBall(position) {
+      // position: -100 to 100
+      const barWidth = document.getElementById('bar-container').offsetWidth;
+      const ballWidth = ball.offsetWidth;
+      const px = ((position + 100) / 200) * (barWidth - ballWidth);
+      ball.style.left = px + 'px';
+    }
 
     function connect() {
       ws = new WebSocket("wss://move-ball-server.glitch.me");
@@ -84,13 +105,9 @@
         }
 
         if (data.type === "update") {
-          ballDisplay.textContent = "Ball Position: " + data.ball;
+          updateBall(data.ball);
           if (data.winner !== null) {
-            if (data.winner === playerID) {
-              info.textContent = "🎉 You Win!";
-            } else {
-              info.textContent = "😢 You Lose!";
-            }
+            info.textContent = data.winner === playerID ? "🎉 You Win!" : "😢 You Lose!";
           }
         }
 
@@ -106,13 +123,19 @@
       };
     }
 
-    // Prevent iPhone double-tap zoom
-    window.addEventListener('touchend', function (e) {
+    // Prevent iOS double-tap zoom and allow fast tapping
+    window.addEventListener('touchstart', function (e) {
       const now = new Date().getTime();
       if (now - lastTap < 300) {
         e.preventDefault();
       }
       lastTap = now;
+    }, { passive: false });
+
+    tapButton.addEventListener('touchstart', () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "tap" }));
+      }
     });
 
     tapButton.addEventListener('click', () => {
