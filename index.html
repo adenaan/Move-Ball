@@ -7,32 +7,42 @@
   <style>
     body {
       margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
       font-family: 'Arial', sans-serif;
+      background: linear-gradient(to bottom, #001f3f, #001a33);
       color: white;
       text-align: center;
       overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     #game-title {
-      font-size: 3em;
-      margin-top: 1em;
-      text-shadow: 0 0 15px cyan, 0 0 30px cyan;
+      font-size: 2.5em;
+      margin-bottom: 0.5em;
+      text-shadow: 0 0 10px cyan, 0 0 20px cyan, 0 0 30px cyan;
     }
 
     #ball-icon {
       display: inline-block;
-      width: 25px;
-      height: 25px;
+      width: 20px;
+      height: 20px;
       background: white;
       border-radius: 50%;
       margin-left: 10px;
       box-shadow: 0 0 10px white;
+      vertical-align: middle;
     }
 
-    #name-entry {
-      margin-top: 3em;
+    #name-entry, #game-area {
+      width: 90%;
+      max-width: 400px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1em;
     }
 
     input {
@@ -40,86 +50,78 @@
       padding: 12px;
       border-radius: 8px;
       border: none;
-      width: 80%;
-      max-width: 300px;
-      margin-bottom: 20px;
+      width: 100%;
+      box-shadow: 0 0 5px cyan;
+      text-align: center;
     }
 
     button {
-      font-size: 1.5em;
-      padding: 12px 30px;
+      font-size: 1.2em;
+      padding: 12px 24px;
       border: none;
       border-radius: 10px;
       background: cyan;
       color: black;
       font-weight: bold;
-      cursor: pointer;
       box-shadow: 0 0 10px cyan;
-      margin-top: 10px;
-    }
-
-    #game-area {
-      display: none;
-      margin-top: 2em;
+      cursor: pointer;
     }
 
     #bar {
-      width: 90%;
-      height: 20px;
+      width: 100%;
+      height: 16px;
       background: white;
-      margin: 3em auto 2em;
       position: relative;
-      border-radius: 10px;
-      overflow: hidden;
+      border-radius: 8px;
+      margin-top: 2em;
     }
 
     #ball {
       position: absolute;
-      top: -5px;
-      width: 30px;
-      height: 30px;
+      top: -8px;
+      width: 24px;
+      height: 24px;
       background: red;
       border-radius: 50%;
-      box-shadow: 0 0 15px red;
+      box-shadow: 0 0 10px red;
       transition: left 0.1s ease;
     }
 
+    #result {
+      font-size: 1.5em;
+      margin-top: 1em;
+      color: yellow;
+      text-shadow: 0 0 5px yellow;
+    }
+
     .tap-btn {
-      font-size: 2em;
-      margin: 1em;
+      font-size: 1.5em;
+      margin-top: 1em;
       padding: 20px 40px;
       background: lime;
       border: none;
-      border-radius: 20px;
-      font-weight: bold;
-      color: black;
+      border-radius: 15px;
       box-shadow: 0 0 10px lime;
-    }
-
-    #result {
-      font-size: 2em;
-      margin-top: 1em;
-      color: yellow;
-      text-shadow: 0 0 10px yellow;
+      font-weight: bold;
+      width: 80%;
+      max-width: 250px;
     }
   </style>
 </head>
 <body>
+
   <div id="game-title">Move the Ball <span id="ball-icon"></span></div>
 
   <div id="name-entry">
     <input type="text" id="playerName" placeholder="Enter your name" />
-    <br />
     <button id="startBtn">Start Game</button>
   </div>
 
-  <div id="game-area">
+  <div id="game-area" style="display: none;">
     <div id="bar">
       <div id="ball" style="left: 50%;"></div>
     </div>
-
     <button class="tap-btn" id="tapBtn">TAP!</button>
-
     <div id="result"></div>
   </div>
 
@@ -127,6 +129,7 @@
     const socket = new WebSocket("wss://move-ball-server.glitch.me");
     let playerID = null;
     let playerName = "";
+
     const startBtn = document.getElementById("startBtn");
     const tapBtn = document.getElementById("tapBtn");
     const ball = document.getElementById("ball");
@@ -135,21 +138,18 @@
     const nameEntry = document.getElementById("name-entry");
 
     startBtn.addEventListener("click", () => {
-      const name = document.getElementById("playerName").value.trim();
-      if (!name) return;
-      playerName = name;
+      const nameInput = document.getElementById("playerName").value.trim();
+      if (!nameInput) return;
+      playerName = nameInput;
       nameEntry.style.display = "none";
-      gameArea.style.display = "block";
+      gameArea.style.display = "flex";
     });
 
     tapBtn.addEventListener("touchstart", (e) => {
       e.preventDefault();
-      socket.send(JSON.stringify({ type: "tap" }));
-    });
-
-    tapBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      socket.send(JSON.stringify({ type: "tap" }));
+      if (playerID !== null) {
+        socket.send(JSON.stringify({ type: "tap" }));
+      }
     });
 
     socket.addEventListener("message", (event) => {
@@ -163,15 +163,15 @@
 
         if (data.winner !== null) {
           if (data.winner === playerID) {
-            result.textContent = "You Win!";
+            result.textContent = "🎉 You Win!";
           } else {
-            result.textContent = "You Lose!";
+            result.textContent = "😢 You Lose!";
           }
         } else {
           result.textContent = "";
         }
       } else if (data.type === "full") {
-        alert("Room is full. Try again later.");
+        alert("Room is full. Please try again later.");
         location.reload();
       }
     });
