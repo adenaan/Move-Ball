@@ -1,118 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta charset="UTF-8" />
-  <title>MoveBall</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Push Battle</title>
   <style>
-    body {
+    html, body {
       margin: 0;
-      font-family: sans-serif;
+      padding: 0;
+      font-family: 'Arial', sans-serif;
       background: #111;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      color: #fff;
       overflow: hidden;
+      height: 100%;
     }
 
     #nameScreen, #gameScreen {
-      display: none;
+      display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      height: 100%;
       width: 100%;
-      max-width: 400px;
-    }
-
-    #nameScreen {
-      display: flex;
-    }
-
-    input, button {
-      margin: 10px;
-      padding: 10px;
-      font-size: 18px;
-      width: 80%;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
 
     #gameScreen {
-      justify-content: space-between;
-      height: 100%;
-      padding: 20px;
+      display: none;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #fff;
+      text-shadow: 0 0 10px #0ff;
+      margin-bottom: 10px;
+    }
+
+    .ball-logo {
+      width: 40px;
+      height: 40px;
+      background: radial-gradient(circle, #0ff, #008);
+      border-radius: 50%;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px #0ff;
+    }
+
+    input, button {
+      font-size: 1.2rem;
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 10px;
+      border: none;
+      outline: none;
     }
 
     #bar {
-      width: 100%;
+      width: 90%;
       height: 20px;
-      background: #555;
-      position: relative;
+      background: #333;
+      margin: 40px 0;
       border-radius: 10px;
-      margin: 20px 0;
+      position: relative;
     }
 
     #ball {
-      width: 30px;
-      height: 30px;
-      background: white;
+      width: 40px;
+      height: 40px;
+      background: radial-gradient(circle, #0ff, #008);
       border-radius: 50%;
       position: absolute;
-      top: -5px;
+      top: -10px;
       left: 50%;
       transform: translateX(-50%);
-      transition: left 0.1s;
+      transition: left 0.1s ease;
+      box-shadow: 0 0 10px #0ff;
     }
 
-    #tapBtn {
-      padding: 20px;
-      font-size: 22px;
-      background: #0af;
-      border: none;
-      border-radius: 10px;
-      color: white;
-      width: 80%;
+    .tapBtn {
+      font-size: 1.5rem;
+      padding: 20px 40px;
+      background: #0ff;
+      color: #000;
+      border-radius: 15px;
+      margin: 10px;
+      touch-action: manipulation;
+      user-select: none;
     }
 
-    .names {
+    #players {
       display: flex;
       justify-content: space-between;
-      width: 100%;
-      font-size: 18px;
+      width: 90%;
+      margin-top: 10px;
+      font-size: 1rem;
     }
 
-    #title {
-      font-size: 32px;
-      text-align: center;
-      margin-bottom: 20px;
+    #message {
+      margin-top: 20px;
+      font-size: 1.2rem;
+      color: #0f0;
     }
-
   </style>
 </head>
 <body>
-
   <div id="nameScreen">
-    <div id="title">⚪ MoveBall</div>
-    <input id="nameInput" placeholder="Enter your name" />
+    <div class="ball-logo"></div>
+    <h1>Push Battle</h1>
+    <input id="nameInput" type="text" placeholder="Enter your name" />
     <button id="startBtn">Start</button>
   </div>
 
   <div id="gameScreen">
-    <div class="names">
-      <div id="player1Name">Player 1</div>
-      <div id="player2Name">Player 2</div>
+    <h1>Push Battle</h1>
+    <div class="ball-logo"></div>
+    <div id="players">
+      <div id="player0">Player 1</div>
+      <div id="player1">Player 2</div>
     </div>
     <div id="bar">
       <div id="ball"></div>
     </div>
-    <button id="tapBtn">TAP!</button>
+    <button id="tapBtn" class="tapBtn">TAP!</button>
+    <div id="message"></div>
   </div>
 
   <script>
     const socket = new WebSocket("wss://move-ball-server.glitch.me");
     let playerID = null;
 
-    socket.addEventListener("open", () => {
-      console.log("Connected");
+    const nameScreen = document.getElementById("nameScreen");
+    const gameScreen = document.getElementById("gameScreen");
+    const nameInput = document.getElementById("nameInput");
+    const startBtn = document.getElementById("startBtn");
+    const tapBtn = document.getElementById("tapBtn");
+    const message = document.getElementById("message");
+    const ball = document.getElementById("ball");
+
+    const playerLabels = [document.getElementById("player0"), document.getElementById("player1")];
+
+    let names = ["Player 1", "Player 2"];
+
+    startBtn.addEventListener("click", () => {
+      const name = nameInput.value.trim();
+      if (name !== "") {
+        nameScreen.style.display = "none";
+        gameScreen.style.display = "flex";
+        socket.send(JSON.stringify({ type: "name", name }));
+      }
+    });
+
+    tapBtn.addEventListener("touchstart", () => {
+      socket.send(JSON.stringify({ type: "tap" }));
     });
 
     socket.addEventListener("message", (event) => {
@@ -123,17 +163,24 @@
       }
 
       if (data.type === "start") {
-        document.getElementById("nameScreen").style.display = "none";
-        document.getElementById("gameScreen").style.display = "flex";
-        updateNames(data.names);
+        names = data.names;
+        playerLabels[0].textContent = names[0];
+        playerLabels[1].textContent = names[1];
       }
 
       if (data.type === "update") {
-        moveBall(data.ball);
-        updateNames(data.names);
+        const percent = (data.ball + 100) / 200;
+        ball.style.left = `${percent * 100}%`;
+
         if (data.winner !== null) {
-          const winnerName = data.names[data.winner];
-          alert(`${winnerName} wins!`);
+          if (data.winner == playerID) {
+            message.textContent = "🎉 You Win!";
+          } else {
+            message.textContent = "😢 You Lose!";
+          }
+          setTimeout(() => {
+            message.textContent = "";
+          }, 2000);
         }
       }
 
@@ -141,48 +188,6 @@
         alert("Room is full. Try again later.");
       }
     });
-
-    function moveBall(position) {
-      const bar = document.getElementById("bar");
-      const ball = document.getElementById("ball");
-      const barWidth = bar.clientWidth - 30;
-      const percent = (position + 100) / 200;
-      const left = barWidth * percent;
-      ball.style.left = `${left}px`;
-    }
-
-    function updateNames(names) {
-      document.getElementById("player1Name").textContent = names[0];
-      document.getElementById("player2Name").textContent = names[1];
-    }
-
-    document.getElementById("startBtn").addEventListener("click", () => {
-      const name = document.getElementById("nameInput").value.trim();
-      if (name !== "") {
-        socket.send(JSON.stringify({ type: "name", name }));
-      }
-    });
-
-    document.getElementById("tapBtn").addEventListener("click", () => {
-      socket.send(JSON.stringify({ type: "tap" }));
-    });
-
-    // Prevent double-tap zoom on iPhone
-    document.addEventListener("touchstart", function (e) {
-      if (e.touches.length > 1) {
-        e.preventDefault();
-      }
-    }, { passive: false });
-
-    let lastTouch = 0;
-    document.addEventListener("touchend", function (e) {
-      const now = new Date().getTime();
-      if (now - lastTouch <= 300) {
-        e.preventDefault();
-      }
-      lastTouch = now;
-    }, false);
   </script>
-
 </body>
 </html>
