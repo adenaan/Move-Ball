@@ -1,41 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Two Player Game</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Move the Ball</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 2em;
-      background-color: #f4f4f4;
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background: #000;
+      color: white;
+      text-align: center;
+      overflow: hidden;
     }
-    .player-box {
+
+    #game-title {
+      font-size: 2.5em;
+      margin-top: 1em;
+      text-shadow: 0 0 10px cyan, 0 0 20px cyan;
+    }
+
+    #ball-icon {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
       background: white;
-      padding: 1em;
-      margin: 1em 0;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border-radius: 50%;
+      margin-left: 10px;
+      box-shadow: 0 0 10px white;
     }
-    h1 {
-      color: #333;
+
+    #name-entry {
+      margin-top: 3em;
+    }
+
+    input {
+      font-size: 1.2em;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      width: 80%;
+      max-width: 300px;
+    }
+
+    button {
+      margin-top: 1em;
+      font-size: 1.2em;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      background: cyan;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #game-area {
+      display: none;
+      position: relative;
+      margin-top: 2em;
+    }
+
+    #bar {
+      width: 80%;
+      height: 20px;
+      background: white;
+      margin: 2em auto;
+      position: relative;
+    }
+
+    #ball {
+      position: absolute;
+      top: -10px;
+      width: 20px;
+      height: 20px;
+      background: red;
+      border-radius: 50%;
+      box-shadow: 0 0 10px red;
+      transition: left 0.1s ease;
+    }
+
+    .tap-btn {
+      font-size: 1.5em;
+      margin: 1em;
+      padding: 20px 30px;
+      background: lime;
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 0 10px lime;
+      font-weight: bold;
+    }
+
+    #result {
+      font-size: 1.5em;
+      margin-top: 1em;
+      color: yellow;
+      text-shadow: 0 0 5px yellow;
     }
   </style>
 </head>
 <body>
-  <h1>Welcome to the Game</h1>
+  <div id="game-title">Move the Ball <span id="ball-icon"></span></div>
 
-  <div class="player-box">
-    <p><strong>Player One:</strong> <span id="playerOneName">Loading...</span></p>
-    <p><strong>Player Two:</strong> <span id="playerTwoName">Loading...</span></p>
+  <div id="name-entry">
+    <input type="text" id="playerName" placeholder="Enter your name" />
+    <br />
+    <button id="startBtn">Start Game</button>
+  </div>
+
+  <div id="game-area">
+    <div id="bar">
+      <div id="ball" style="left: 50%;"></div>
+    </div>
+
+    <div>
+      <button class="tap-btn" id="tapBtn">TAP!</button>
+    </div>
+
+    <div id="result"></div>
   </div>
 
   <script>
-    // Example names - replace with real data from input or server later
-    const playerOne = "Alice";
-    const playerTwo = "Bob";
+    const socket = new WebSocket("wss://move-ball-server.glitch.me");
+    let playerID = null;
+    let playerName = "";
+    const startBtn = document.getElementById("startBtn");
+    const tapBtn = document.getElementById("tapBtn");
+    const ball = document.getElementById("ball");
+    const result = document.getElementById("result");
+    const gameArea = document.getElementById("game-area");
+    const nameEntry = document.getElementById("name-entry");
 
-    document.getElementById("playerOneName").textContent = playerOne;
-    document.getElementById("playerTwoName").textContent = playerTwo;
+    startBtn.addEventListener("click", () => {
+      const name = document.getElementById("playerName").value.trim();
+      if (!name) return;
+      playerName = name;
+      nameEntry.style.display = "none";
+      gameArea.style.display = "block";
+    });
+
+    tapBtn.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      socket.send(JSON.stringify({ type: "tap" }));
+    });
+
+    socket.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "init") {
+        playerID = data.playerID;
+      } else if (data.type === "update") {
+        const percent = (data.ball + 100) / 200 * 100;
+        ball.style.left = `${percent}%`;
+        if (data.winner !== null) {
+          if (data.winner === playerID) {
+            result.textContent = "You Win!";
+          } else {
+            result.textContent = "You Lose!";
+          }
+        } else {
+          result.textContent = "";
+        }
+      } else if (data.type === "full") {
+        alert("Room is full. Try again later.");
+        location.reload();
+      }
+    });
   </script>
 </body>
 </html>
