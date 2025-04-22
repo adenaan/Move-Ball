@@ -2,220 +2,225 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Move Ball Game</title>
   <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: radial-gradient(circle at top, #1e1e1e, #111);
-      color: #fff;
+      font-family: 'Arial', sans-serif;
+      background: #111;
+      color: white;
       text-align: center;
       overflow: hidden;
     }
-    #game {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 10px;
-    }
+
     #titleBar {
       padding: 20px 10px 10px;
       font-size: 1.8em;
       font-weight: bold;
       color: #ffca28;
-      text-shadow: 0 0 8px #ffca28;
-    }
-    #nameEntry {
-      padding: 10px;
-    }
-    #nameInput {
-      padding: 12px;
-      width: 65%;
-      font-size: 1em;
-      border-radius: 8px;
-      border: none;
-      outline: none;
-    }
-    #submitName {
-      padding: 12px 18px;
-      margin-left: 8px;
-      font-size: 1em;
-      border-radius: 8px;
-      border: none;
-      background: #2196f3;
-      color: white;
-      font-weight: bold;
-    }
-    .names {
+      text-shadow: 0 0 6px #ffca28, 0 0 12px #ff9800;
       display: flex;
-      justify-content: space-between;
-      margin: 20px 30px 0;
-      font-size: 1.2em;
-      color: #ccc;
+      align-items: center;
+      justify-content: center;
     }
-    .bar {
+
+    #titleBall {
+      width: 20px;
+      height: 20px;
+      margin-left: 10px;
+      background: #ffca28;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #ffca28, 0 0 20px #ff9800;
+    }
+
+    #gameArea {
+      margin-top: 20px;
       position: relative;
-      height: 50px;
-      background: #444;
-      margin: 30px 20px;
-      border-radius: 25px;
-      box-shadow: inset 0 0 10px #000;
+      height: 200px;
     }
+
+    #bar {
+      position: relative;
+      height: 10px;
+      width: 90%;
+      margin: 50px auto;
+      background: #555;
+      border-radius: 5px;
+    }
+
     .ball {
       position: absolute;
-      top: 10px;
+      top: -10px;
       width: 30px;
       height: 30px;
       background: #ffca28;
       border-radius: 50%;
       transition: left 0.1s ease;
-      box-shadow: 0 0 8px #ffca28;
+      box-shadow: 0 0 10px #ffca28, 0 0 20px #ff9800;
+      z-index: 10;
     }
+
+    #names {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 30px;
+      font-size: 1.2em;
+    }
+
     #tapButton {
-      font-size: 2em;
-      padding: 20px;
-      margin: 0 auto 10px;
-      background: #4caf50;
+      margin-top: 30px;
+      padding: 15px 30px;
+      font-size: 1.2em;
+      background: #2196f3;
       color: white;
       border: none;
-      border-radius: 12px;
-      width: 80%;
-      max-width: 300px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      border-radius: 8px;
+      box-shadow: 0 0 8px #2196f3;
+      touch-action: manipulation;
     }
-    #tapButton:active {
-      background: #388e3c;
-    }
-    #result {
-      font-size: 1.5em;
-      margin: 10px 0;
-    }
-    #stats {
+
+    #scoreBoard {
+      margin-top: 20px;
       font-size: 1em;
-      color: #bbb;
-      margin-bottom: 10px;
+    }
+
+    #message {
+      margin-top: 10px;
+      color: #f44336;
+    }
+
+    input {
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      margin: 10px;
+      font-size: 1em;
+    }
+
+    button {
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div id="game">
-    <div id="titleBar">⚽ Move Ball Game</div>
+  <div id="titleBar">
+    Move Ball
+    <div id="titleBall"></div>
+  </div>
 
-    <div id="nameEntry">
-      <input type="text" id="nameInput" placeholder="Enter your name" />
-      <button id="submitName">Join</button>
-    </div>
-
-    <div id="names" class="names" style="display:none;">
+  <div id="gameArea">
+    <div id="names">
       <div id="player0Name">Player 1</div>
       <div id="player1Name">Player 2</div>
     </div>
-
-    <div class="bar" id="bar" style="display:none;">
-      <div class="ball" id="ball" style="left: 50%;"></div>
+    <div id="bar">
+      <div id="ball" class="ball"></div>
     </div>
-
-    <div id="result"></div>
-    <button id="tapButton" style="display:none;">TAP!</button>
-    <div id="stats"></div>
   </div>
 
+  <button id="tapButton">TAP!</button>
+
+  <div id="scoreBoard">
+    Wins: <span id="wins">0</span> |
+    Losses: <span id="losses">0</span>
+  </div>
+
+  <div>
+    <input type="text" id="nameInput" placeholder="Enter your name" />
+    <button onclick="sendName()">Submit Name</button>
+  </div>
+
+  <div id="message"></div>
+
   <script>
-    let ws;
-    let playerID;
-    let wins = 0, losses = 0;
-    let yourName = "";
-    let otherName = "...";
+    const ws = new WebSocket("wss://move-ball-server.glitch.me");
 
-    document.getElementById("submitName").onclick = () => {
-      yourName = document.getElementById("nameInput").value || "Player";
-      connect();
-    };
+    let playerID = null;
+    let yourName = "You";
+    let otherName = "Opponent";
+    let wins = 0;
+    let losses = 0;
 
-    function connect() {
-      ws = new WebSocket("wss://move-ball-server.glitch.me");
+    const ball = document.getElementById("ball");
+    const message = document.getElementById("message");
+    const player0Name = document.getElementById("player0Name");
+    const player1Name = document.getElementById("player1Name");
 
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ type: "join", name: yourName }));
-      };
-
-      ws.onmessage = (msg) => {
-        const data = JSON.parse(msg.data);
-
-        if (data.type === "full") {
-          alert("Room full. Try again later.");
-          return;
-        }
-
-        if (data.type === "init") {
-          playerID = data.playerID;
-          yourName = data.yourName;
-          otherName = data.otherName;
-          updateNames();
-          document.getElementById("nameEntry").style.display = "none";
-          document.getElementById("tapButton").style.display = "block";
-          document.getElementById("bar").style.display = "block";
-          document.getElementById("names").style.display = "flex";
-        }
-
-        if (data.type === "names") {
-          if (data.players[1 - playerID]) {
-            otherName = data.players[1 - playerID];
-          }
-          updateNames();
-        }
-
-        if (data.type === "update") {
-          const ball = document.getElementById("ball");
-          const bar = document.getElementById("bar");
-          const percent = (data.ball + 100) / 200;
-          ball.style.left = `${percent * (bar.clientWidth - 30)}px`;
-
-          if (data.winner !== null) {
-            const result = document.getElementById("result");
-            if (data.winner == playerID) {
-              result.textContent = "🏆 You Win!";
-              wins++;
-            } else {
-              result.textContent = "💀 You Lose!";
-              losses++;
-            }
-            updateStats();
-            setTimeout(() => {
-              result.textContent = "";
-            }, 2000);
-          }
-        }
-      };
-
-      ws.onclose = () => {
-        alert("Disconnected from server.");
-      };
+    function updateBall(position) {
+      const bar = document.getElementById("bar");
+      const barWidth = bar.offsetWidth;
+      const percent = (position + 100) / 200;
+      ball.style.left = `${Math.max(0, Math.min(1, percent)) * (barWidth - 30)}px`;
     }
 
     function updateNames() {
-      document.getElementById("player0Name").textContent = playerID === 0 ? yourName : otherName;
-      document.getElementById("player1Name").textContent = playerID === 1 ? yourName : otherName;
+      if (playerID === 0) {
+        player0Name.textContent = yourName;
+        player1Name.textContent = otherName;
+      } else {
+        player0Name.textContent = otherName;
+        player1Name.textContent = yourName;
+      }
     }
 
-    function updateStats() {
-      document.getElementById("stats").textContent = `Wins: ${wins} | Losses: ${losses}`;
+    function sendName() {
+      const input = document.getElementById("nameInput");
+      if (input.value.trim()) {
+        yourName = input.value.trim();
+        updateNames();
+        ws.send(JSON.stringify({ type: "name", name: yourName }));
+      }
     }
 
-    document.getElementById("tapButton").addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      ws.send(JSON.stringify({ type: "tap" }));
-    }, { passive: false });
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === "init") {
+        playerID = data.playerID;
+        message.textContent = `Connected as Player ${playerID + 1}`;
+      }
+
+      if (data.type === "update") {
+        updateBall(data.ball);
+
+        if (data.winner !== null) {
+          if (data.winner === playerID) {
+            message.textContent = "🎉 You win!";
+            wins++;
+          } else {
+            message.textContent = "😞 You lost.";
+            losses++;
+          }
+
+          document.getElementById("wins").textContent = wins;
+          document.getElementById("losses").textContent = losses;
+        }
+
+        if (data.names) {
+          otherName = data.names.find((n) => n !== yourName) || "Opponent";
+          updateNames();
+        }
+      }
+
+      if (data.type === "full") {
+        message.textContent = "Room is full. Try again later.";
+      }
+    };
 
     document.getElementById("tapButton").addEventListener("click", () => {
       ws.send(JSON.stringify({ type: "tap" }));
     });
+
+    // Prevent double-tap zoom on iPhone
+    let lastTouch = 0;
+    document.addEventListener('touchstart', function (e) {
+      const now = new Date().getTime();
+      if (now - lastTouch <= 300) {
+        e.preventDefault();
+      }
+      lastTouch = now;
+    }, { passive: false });
   </script>
 </body>
 </html>
