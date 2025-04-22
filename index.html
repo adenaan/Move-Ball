@@ -3,183 +3,147 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Move Ball Game</title>
+  <title>Tap Battle</title>
   <style>
+    html {
+      touch-action: manipulation;
+    }
     body {
       margin: 0;
-      font-family: sans-serif;
-      background: #111;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #111, #222);
       color: white;
       text-align: center;
       overflow: hidden;
     }
-
-    .title {
+    h1 {
       font-size: 2em;
-      margin-top: 20px;
+      margin: 1em 0 0.5em;
       text-shadow: 0 0 10px cyan;
     }
-
-    .ball-title {
-      display: inline-block;
-      margin-left: 10px;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: cyan;
-      animation: pulse 1s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.5); }
-    }
-
-    .start-screen, .game-screen {
-      display: none;
-      padding-top: 30px;
-    }
-
-    .bar {
-      margin: 40px auto;
-      height: 10px;
-      background: white;
-      width: 80%;
-      position: relative;
-      border-radius: 5px;
-    }
-
-    .ball {
-      position: absolute;
-      top: -7px;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: cyan;
-      transition: left 0.1s;
-    }
-
-    .names {
+    #gameTitle {
       display: flex;
-      justify-content: space-between;
-      margin: 20px auto;
-      width: 80%;
-      font-size: 1.2em;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5em;
     }
-
-    button {
-      padding: 15px 30px;
-      font-size: 1em;
+    #ballIcon {
+      width: 20px;
+      height: 20px;
       background: cyan;
+      border-radius: 50%;
+      box-shadow: 0 0 10px cyan;
+    }
+    #nameEntry {
+      margin-top: 1em;
+    }
+    input {
+      padding: 0.5em;
+      margin: 0.5em;
+      font-size: 1em;
+    }
+    button {
+      padding: 0.7em 1.2em;
+      font-size: 1em;
       border: none;
       border-radius: 10px;
-      color: #111;
+      background: cyan;
+      color: black;
       font-weight: bold;
-      margin-top: 20px;
-      width: 80%;
-      max-width: 300px;
+      margin-top: 1em;
     }
-
-    .win-message {
-      margin-top: 20px;
+    .scoreboard {
+      font-size: 1.5em;
+      margin: 1em 0;
+      color: lime;
+    }
+    .player-labels {
+      display: flex;
+      justify-content: space-around;
+      margin: 1em 0;
+    }
+    #tapButton {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 1em 2em;
+      background: lime;
+      border: none;
+      font-size: 1.5em;
+      border-radius: 1em;
+      box-shadow: 0 0 10px lime;
+    }
+    #message {
+      margin-top: 1em;
       font-size: 1.2em;
-      color: #0f0;
-    }
-
-    input {
-      padding: 10px;
-      width: 80%;
-      max-width: 300px;
-      margin: 10px 0;
-      font-size: 1em;
+      color: yellow;
     }
   </style>
 </head>
 <body>
-  <div class="title">Move Ball <div class="ball-title"></div></div>
+  <div id="gameTitle">
+    <h1>Tap Battle</h1>
+    <div id="ballIcon"></div>
+  </div>
 
-  <div class="start-screen">
-    <input type="text" id="nameInput" placeholder="Enter your name" />
+  <div id="nameEntry">
+    <input id="name1" placeholder="Player 1 name" />
+    <input id="name2" placeholder="Player 2 name" />
     <br />
-    <button id="startBtn">Start</button>
-    <div id="fullMsg" style="color:red; margin-top: 10px;"></div>
+    <button onclick="startGame()">Start Game</button>
   </div>
 
-  <div class="game-screen">
-    <div class="names">
-      <div id="name1">Player 1</div>
-      <div id="name2">Player 2</div>
-    </div>
-
-    <div class="bar">
-      <div class="ball" id="ball" style="left: 50%;"></div>
-    </div>
-
-    <button id="tapBtn">TAP!</button>
-
-    <div class="win-message" id="winMsg"></div>
+  <div class="player-labels">
+    <div><strong id="label1">Player 1</strong></div>
+    <div><strong id="label2">Player 2</strong></div>
   </div>
+
+  <div class="scoreboard">
+    <span id="score1">0</span> - <span id="score2">0</span>
+  </div>
+
+  <div id="message"></div>
+
+  <button id="tapButton" onclick="sendTap()">TAP!</button>
 
   <script>
-    const socket = new WebSocket("wss://move-ball-server.glitch.me");
-    const startScreen = document.querySelector(".start-screen");
-    const gameScreen = document.querySelector(".game-screen");
-    const startBtn = document.getElementById("startBtn");
-    const nameInput = document.getElementById("nameInput");
-    const name1 = document.getElementById("name1");
-    const name2 = document.getElementById("name2");
-    const winMsg = document.getElementById("winMsg");
-    const fullMsg = document.getElementById("fullMsg");
+    let socket, playerID = null, scores = [0, 0];
 
-    const tapBtn = document.getElementById("tapBtn");
-    const ball = document.getElementById("ball");
+    function startGame() {
+      const name1 = document.getElementById('name1').value || 'Player 1';
+      const name2 = document.getElementById('name2').value || 'Player 2';
+      document.getElementById('label1').textContent = name1;
+      document.getElementById('label2').textContent = name2;
+      document.getElementById('nameEntry').style.display = 'none';
 
-    let playerID = null;
-    let myName = "";
+      socket = new WebSocket("wss://move-ball-server.glitch.me");
 
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
 
-      if (msg.type === "init") {
-        playerID = msg.playerID;
-        startScreen.style.display = "block";
-      }
-
-      if (msg.type === "full") {
-        fullMsg.innerText = "Room full. Try again later.";
-      }
-
-      if (msg.type === "start") {
-        gameScreen.style.display = "block";
-        startScreen.style.display = "none";
-        name1.innerText = msg.names[0] || "Player 1";
-        name2.innerText = msg.names[1] || "Player 2";
-        winMsg.innerText = "";
-      }
-
-      if (msg.type === "update") {
-        const percent = (msg.ball + 100) / 200 * 100;
-        ball.style.left = `calc(${percent}% - 10px)`;
-
-        if (msg.winner !== null) {
-          const winText = msg.winner === playerID ? "You Win!" : "You Lose!";
-          winMsg.innerText = winText;
+        if (data.type === "init") {
+          playerID = data.playerID;
+        } else if (data.type === "update") {
+          if (data.winner !== null) {
+            scores[data.winner]++;
+            document.getElementById('score1').textContent = scores[0];
+            document.getElementById('score2').textContent = scores[1];
+            document.getElementById('message').textContent = `${data.winner === 0 ? name1 : name2} wins!`;
+          } else {
+            document.getElementById('message').textContent = "";
+          }
+        } else if (data.type === "full") {
+          document.getElementById('message').textContent = "Room full. Try again later.";
         }
+      };
+    }
+
+    function sendTap() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "tap" }));
       }
-    };
-
-    startBtn.onclick = () => {
-      myName = nameInput.value.trim();
-      if (myName.length === 0) return;
-      socket.send(JSON.stringify({ type: "start", name: myName }));
-    };
-
-    tapBtn.addEventListener("touchstart", () => {
-      socket.send(JSON.stringify({ type: "tap" }));
-    });
-    tapBtn.addEventListener("mousedown", () => {
-      socket.send(JSON.stringify({ type: "tap" }));
-    });
+    }
   </script>
 </body>
 </html>
