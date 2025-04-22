@@ -1,147 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>MoveBall Duel</title>
+  <title>MoveBall</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
       font-family: sans-serif;
       background: #111;
       color: white;
-      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       height: 100vh;
-      touch-action: manipulation;
+      overflow: hidden;
     }
 
     #nameScreen, #gameScreen {
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
-      width: 100vw;
+      width: 100%;
+      max-width: 400px;
     }
 
     #nameScreen {
       display: flex;
     }
 
-    h1.glow {
-      font-size: 2.5em;
-      color: #fff;
-      text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .ball-icon {
-      width: 20px;
-      height: 20px;
-      background: #0ff;
-      border-radius: 50%;
-      box-shadow: 0 0 10px #0ff;
-    }
-
-    input {
+    input, button {
+      margin: 10px;
       padding: 10px;
-      font-size: 1em;
-      border: none;
-      border-radius: 5px;
-      margin-top: 20px;
+      font-size: 18px;
+      width: 80%;
     }
 
-    button {
-      margin-top: 20px;
-      padding: 12px 30px;
-      font-size: 1em;
-      border: none;
-      border-radius: 8px;
-      background: #0ff;
-      color: #111;
-      font-weight: bold;
-      box-shadow: 0 0 10px #0ff;
-      touch-action: manipulation;
+    #gameScreen {
+      justify-content: space-between;
+      height: 100%;
+      padding: 20px;
     }
 
     #bar {
-      position: relative;
-      width: 90%;
+      width: 100%;
       height: 20px;
-      background: #333;
+      background: #555;
+      position: relative;
       border-radius: 10px;
-      margin: 40px auto;
-      overflow: hidden;
+      margin: 20px 0;
     }
 
     #ball {
-      position: absolute;
-      top: 0;
-      width: 20px;
-      height: 20px;
-      background: #0ff;
+      width: 30px;
+      height: 30px;
+      background: white;
       border-radius: 50%;
-      box-shadow: 0 0 10px #0ff;
-      transition: left 0.1s linear;
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: left 0.1s;
     }
 
-    .playerLabels {
-      display: flex;
-      justify-content: space-between;
-      width: 90%;
-      margin-top: 10px;
-      font-size: 1em;
-    }
-
-    #result {
-      margin-top: 30px;
-      font-size: 1.5em;
-    }
-
-    #tapButton {
-      margin-top: 20px;
-      font-size: 1.2em;
-      padding: 14px 40px;
-      background: #0ff;
-      color: #000;
+    #tapBtn {
+      padding: 20px;
+      font-size: 22px;
+      background: #0af;
       border: none;
       border-radius: 10px;
-      font-weight: bold;
-      box-shadow: 0 0 8px #0ff;
+      color: white;
+      width: 80%;
     }
+
+    .names {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      font-size: 18px;
+    }
+
+    #title {
+      font-size: 32px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
   </style>
 </head>
 <body>
+
   <div id="nameScreen">
-    <h1 class="glow">MoveBall <div class="ball-icon"></div></h1>
-    <input type="text" id="playerName" placeholder="Enter your name" />
-    <button onclick="submitName()">Start</button>
+    <div id="title">⚪ MoveBall</div>
+    <input id="nameInput" placeholder="Enter your name" />
+    <button id="startBtn">Start</button>
   </div>
 
   <div id="gameScreen">
-    <h1 class="glow">MoveBall <div class="ball-icon"></div></h1>
+    <div class="names">
+      <div id="player1Name">Player 1</div>
+      <div id="player2Name">Player 2</div>
+    </div>
     <div id="bar">
       <div id="ball"></div>
     </div>
-    <div class="playerLabels">
-      <span id="name0">Player 1</span>
-      <span id="name1">Player 2</span>
-    </div>
-    <div id="result"></div>
-    <button id="tapButton">TAP!</button>
+    <button id="tapBtn">TAP!</button>
   </div>
 
   <script>
-    let socket = new WebSocket("wss://move-ball-server.glitch.me");
+    const socket = new WebSocket("wss://move-ball-server.glitch.me");
     let playerID = null;
-    let playerNames = ["Player 1", "Player 2"];
-    let myName = "";
 
     socket.addEventListener("open", () => {
-      console.log("Connected to server.");
+      console.log("Connected");
     });
 
     socket.addEventListener("message", (event) => {
@@ -149,12 +120,6 @@
 
       if (data.type === "init") {
         playerID = data.playerID;
-        document.getElementById("nameScreen").style.display = "flex";
-        document.getElementById("gameScreen").style.display = "none";
-      }
-
-      if (data.type === "full") {
-        alert("Room is full. Try again later.");
       }
 
       if (data.type === "start") {
@@ -164,44 +129,60 @@
       }
 
       if (data.type === "update") {
-        updateBall(data.ball);
+        moveBall(data.ball);
         updateNames(data.names);
         if (data.winner !== null) {
-          document.getElementById("result").textContent =
-            (data.winner === playerID ? "You win!" : "You lose!");
-        } else {
-          document.getElementById("result").textContent = "";
+          const winnerName = data.names[data.winner];
+          alert(`${winnerName} wins!`);
         }
+      }
+
+      if (data.type === "full") {
+        alert("Room is full. Try again later.");
       }
     });
 
-    function submitName() {
-      const name = document.getElementById("playerName").value.trim();
-      if (name) {
-        myName = name;
-        socket.send(JSON.stringify({ type: "name", name }));
-      }
-    }
-
-    function updateBall(pos) {
+    function moveBall(position) {
       const bar = document.getElementById("bar");
       const ball = document.getElementById("ball");
-      const maxPos = bar.offsetWidth - ball.offsetWidth;
-      const x = ((pos + 100) / 200) * maxPos;
-      ball.style.left = `${x}px`;
+      const barWidth = bar.clientWidth - 30;
+      const percent = (position + 100) / 200;
+      const left = barWidth * percent;
+      ball.style.left = `${left}px`;
     }
 
     function updateNames(names) {
-      if (names) {
-        playerNames = names;
-        document.getElementById("name0").textContent = names[0] || "Player 1";
-        document.getElementById("name1").textContent = names[1] || "Player 2";
-      }
+      document.getElementById("player1Name").textContent = names[0];
+      document.getElementById("player2Name").textContent = names[1];
     }
 
-    document.getElementById("tapButton").addEventListener("click", () => {
+    document.getElementById("startBtn").addEventListener("click", () => {
+      const name = document.getElementById("nameInput").value.trim();
+      if (name !== "") {
+        socket.send(JSON.stringify({ type: "name", name }));
+      }
+    });
+
+    document.getElementById("tapBtn").addEventListener("click", () => {
       socket.send(JSON.stringify({ type: "tap" }));
     });
+
+    // Prevent double-tap zoom on iPhone
+    document.addEventListener("touchstart", function (e) {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    let lastTouch = 0;
+    document.addEventListener("touchend", function (e) {
+      const now = new Date().getTime();
+      if (now - lastTouch <= 300) {
+        e.preventDefault();
+      }
+      lastTouch = now;
+    }, false);
   </script>
+
 </body>
 </html>
