@@ -2,192 +2,192 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Push Battle</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>PushBall Duel</title>
   <style>
-    html, body {
+    body {
       margin: 0;
       padding: 0;
-      font-family: 'Arial', sans-serif;
       background: #111;
       color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
       overflow: hidden;
-      height: 100%;
     }
-
-    #nameScreen, #gameScreen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      width: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-
-    #gameScreen {
-      display: none;
-    }
-
-    h1 {
+    .glow {
       font-size: 2.5rem;
       color: #fff;
-      text-shadow: 0 0 10px #0ff;
-      margin-bottom: 10px;
+      text-shadow: 0 0 8px #00f, 0 0 16px #0ff;
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
     }
-
-    .ball-logo {
-      width: 40px;
-      height: 40px;
-      background: radial-gradient(circle, #0ff, #008);
+    .ball-icon {
+      width: 30px;
+      height: 30px;
+      background: radial-gradient(circle at 30% 30%, #0ff, #00f);
       border-radius: 50%;
-      margin-bottom: 20px;
-      box-shadow: 0 0 10px #0ff;
     }
-
-    input, button {
-      font-size: 1.2rem;
-      padding: 10px 20px;
-      margin: 10px;
-      border-radius: 10px;
-      border: none;
-      outline: none;
+    #game {
+      display: none;
+      margin-top: 20px;
     }
-
     #bar {
-      width: 90%;
+      width: 80%;
       height: 20px;
       background: #333;
-      margin: 40px 0;
-      border-radius: 10px;
+      margin: 30px auto;
       position: relative;
+      border-radius: 10px;
     }
-
     #ball {
-      width: 40px;
-      height: 40px;
-      background: radial-gradient(circle, #0ff, #008);
+      width: 30px;
+      height: 30px;
+      background: #0ff;
       border-radius: 50%;
       position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      transition: left 0.1s ease;
-      box-shadow: 0 0 10px #0ff;
+      top: -5px;
+      transition: left 0.1s ease-out;
     }
-
+    .name-labels {
+      display: flex;
+      justify-content: space-between;
+      width: 80%;
+      margin: 0 auto 20px;
+      font-weight: bold;
+    }
     .tapBtn {
       font-size: 1.5rem;
-      padding: 20px 40px;
+      padding: 15px 30px;
       background: #0ff;
-      color: #000;
-      border-radius: 15px;
-      margin: 10px;
+      color: #111;
+      border: none;
+      border-radius: 8px;
       touch-action: manipulation;
       user-select: none;
     }
-
-    #players {
-      display: flex;
-      justify-content: space-between;
-      width: 90%;
-      margin-top: 10px;
-      font-size: 1rem;
+    .tapBtn:active {
+      background: #0cc;
     }
-
-    #message {
-      margin-top: 20px;
+    #entry {
+      margin-top: 60px;
+    }
+    input {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+    }
+    button {
+      margin-top: 10px;
       font-size: 1.2rem;
-      color: #0f0;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #0ff;
+      color: #111;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    .score {
+      margin-top: 10px;
+      font-size: 1.1rem;
     }
   </style>
 </head>
 <body>
-  <div id="nameScreen">
-    <div class="ball-logo"></div>
-    <h1>Push Battle</h1>
-    <input id="nameInput" type="text" placeholder="Enter your name" />
-    <button id="startBtn">Start</button>
+  <div class="glow">
+    <div class="ball-icon"></div>
+    PushBall Duel
+    <div class="ball-icon"></div>
   </div>
 
-  <div id="gameScreen">
-    <h1>Push Battle</h1>
-    <div class="ball-logo"></div>
-    <div id="players">
-      <div id="player0">Player 1</div>
-      <div id="player1">Player 2</div>
+  <div id="entry">
+    <input type="text" id="nameInput" placeholder="Enter your name" />
+    <br />
+    <button onclick="startGame()">Start</button>
+    <div id="entryMsg" style="margin-top: 10px; color: #f00;"></div>
+  </div>
+
+  <div id="game">
+    <div class="name-labels">
+      <div id="p1Name"></div>
+      <div id="p2Name"></div>
     </div>
     <div id="bar">
       <div id="ball"></div>
     </div>
-    <button id="tapBtn" class="tapBtn">TAP!</button>
-    <div id="message"></div>
+    <button class="tapBtn" id="tapBtn">TAP!</button>
+    <div class="score" id="scoreBoard"></div>
   </div>
 
   <script>
-    const socket = new WebSocket("wss://move-ball-server.glitch.me");
-    let playerID = null;
-
-    const nameScreen = document.getElementById("nameScreen");
-    const gameScreen = document.getElementById("gameScreen");
-    const nameInput = document.getElementById("nameInput");
-    const startBtn = document.getElementById("startBtn");
-    const tapBtn = document.getElementById("tapBtn");
-    const message = document.getElementById("message");
-    const ball = document.getElementById("ball");
-
-    const playerLabels = [document.getElementById("player0"), document.getElementById("player1")];
-
+    let socket;
+    let playerID;
     let names = ["Player 1", "Player 2"];
+    let wins = 0;
+    let losses = 0;
 
-    startBtn.addEventListener("click", () => {
-      const name = nameInput.value.trim();
-      if (name !== "") {
-        nameScreen.style.display = "none";
-        gameScreen.style.display = "flex";
+    function startGame() {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) return;
+
+      socket = new WebSocket("wss://move-ball-server.glitch.me");
+      socket.onopen = () => {
         socket.send(JSON.stringify({ type: "name", name }));
-      }
-    });
+      };
 
-    tapBtn.addEventListener("touchstart", () => {
-      socket.send(JSON.stringify({ type: "tap" }));
-    });
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
 
-    socket.addEventListener("message", (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.type === "init") {
-        playerID = data.playerID;
-      }
-
-      if (data.type === "start") {
-        names = data.names;
-        playerLabels[0].textContent = names[0];
-        playerLabels[1].textContent = names[1];
-      }
-
-      if (data.type === "update") {
-        const percent = (data.ball + 100) / 200;
-        ball.style.left = `${percent * 100}%`;
-
-        if (data.winner !== null) {
-          if (data.winner == playerID) {
-            message.textContent = "🎉 You Win!";
-          } else {
-            message.textContent = "😢 You Lose!";
-          }
-          setTimeout(() => {
-            message.textContent = "";
-          }, 2000);
+        if (data.type === "full") {
+          document.getElementById("entryMsg").innerText = "Room is full. Try later.";
         }
-      }
 
-      if (data.type === "full") {
-        alert("Room is full. Try again later.");
+        if (data.type === "init") {
+          playerID = data.playerID;
+          names[playerID] = name;
+          document.getElementById("entry").style.display = "none";
+          document.getElementById("game").style.display = "block";
+        }
+
+        if (data.type === "names") {
+          names = data.names;
+          document.getElementById("p1Name").innerText = names[0] || "Player 1";
+          document.getElementById("p2Name").innerText = names[1] || "Player 2";
+        }
+
+        if (data.type === "update") {
+          const ball = document.getElementById("ball");
+          const pos = 0.5 + data.ball / 200; // normalize
+          const bar = document.getElementById("bar");
+          ball.style.left = `${(bar.clientWidth - ball.clientWidth) * pos}px`;
+
+          if (data.winner !== null) {
+            if (data.winner === playerID) wins++;
+            else losses++;
+            updateScore();
+          }
+        }
+      };
+    }
+
+    function updateScore() {
+      document.getElementById("scoreBoard").innerText = `Wins: ${wins} | Losses: ${losses}`;
+    }
+
+    function handleTap(e) {
+      e.preventDefault();
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "tap" }));
       }
-    });
+    }
+
+    const tapBtn = document.getElementById("tapBtn");
+    tapBtn.addEventListener("touchstart", handleTap);
+    tapBtn.addEventListener("click", handleTap);
   </script>
 </body>
 </html>
