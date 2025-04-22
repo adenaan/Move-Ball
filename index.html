@@ -2,168 +2,169 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Tap Ball Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Clash</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; }
     body {
       margin: 0;
       padding: 0;
-      font-family: sans-serif;
-      background: #111;
-      color: #fff;
+      font-family: 'Orbitron', sans-serif;
+      background: radial-gradient(circle at center, #0f0f1a, #000);
+      color: #0ff;
       text-align: center;
       overflow: hidden;
     }
-    #start-screen, #game-screen {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      display: flex;
+
+    h1.title {
+      font-size: 2.5rem;
+      margin-top: 1em;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+    }
+
+    .start-screen, .game-screen {
+      display: none;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
+      height: 100vh;
+      gap: 1em;
     }
-    #game-title {
-      font-size: 2em;
-      margin-bottom: 20px;
-      text-shadow: 0 0 10px cyan;
+
+    .start-screen.active, .game-screen.active {
+      display: flex;
     }
-    input {
+
+    input[type="text"] {
       padding: 0.5em;
-      font-size: 1em;
-      margin: 10px;
-    }
-    button {
-      padding: 0.75em 2em;
       font-size: 1.2em;
-      background: cyan;
-      border: none;
       border-radius: 10px;
-      margin-top: 10px;
-      user-select: none;
-      touch-action: manipulation;
+      border: none;
+      text-align: center;
     }
-    #ball-container {
+
+    .start-button, .tap-button {
+      background-color: #0ff;
+      color: #000;
+      font-size: 1.5em;
+      padding: 0.8em 2em;
+      border: none;
+      border-radius: 50px;
+      box-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+      transition: transform 0.2s;
+    }
+
+    .start-button:active, .tap-button:active {
+      transform: scale(0.95);
+    }
+
+    .bar {
+      width: 90vw;
+      height: 4px;
+      background: #0ff;
+      margin: 2em auto;
       position: relative;
-      width: 100%;
-      height: 60px;
-      background: #333;
-      border-radius: 30px;
-      overflow: hidden;
-      margin-bottom: 20px;
     }
-    #ball {
-      width: 40px;
-      height: 40px;
-      background: cyan;
+
+    .ball {
+      width: 30px;
+      height: 30px;
+      background: #0ff;
       border-radius: 50%;
       position: absolute;
-      top: 10px;
+      top: -13px;
       left: 50%;
       transform: translateX(-50%);
+      box-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
     }
-    #player-names {
-      margin: 1em;
+
+    .names {
+      display: flex;
+      justify-content: space-between;
+      width: 90vw;
+      font-size: 1.2em;
+      margin: 0 auto;
+      color: #fff;
     }
-    #winner-message {
-      font-size: 1.5em;
-      margin-top: 10px;
-      color: yellow;
+
+    .winner-msg {
+      font-size: 2em;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff;
+      margin-top: 1em;
     }
   </style>
 </head>
 <body>
-  <div id="start-screen">
-    <div id="game-title">🔥 TapBall 🔥</div>
-    <input type="text" id="name-input" placeholder="Enter your name" />
-    <button id="start-button">Start</button>
-    <div id="full-message" style="color: red; display: none;">Room full. Try again later.</div>
+  <h1 class="title">Neon Clash ⚡</h1>
+  
+  <div class="start-screen active">
+    <input id="name1" type="text" placeholder="Enter Player 1 Name" />
+    <input id="name2" type="text" placeholder="Enter Player 2 Name" />
+    <button class="start-button" onclick="startGame()">Start Game</button>
   </div>
 
-  <div id="game-screen" style="display: none;">
-    <div id="player-names">Waiting for opponent...</div>
-    <div id="ball-container">
-      <div id="ball"></div>
+  <div class="game-screen">
+    <div class="names">
+      <div><span id="player1">Player 1</span> (<span id="score1">0</span>)</div>
+      <div><span id="player2">Player 2</span> (<span id="score2">0</span>)</div>
     </div>
-    <button id="tap-button">TAP!</button>
-    <div id="winner-message"></div>
+    <div class="bar">
+      <div class="ball" id="ball"></div>
+    </div>
+    <div class="winner-msg" id="winner"></div>
+    <button class="tap-button" onclick="tap()">TAP</button>
   </div>
 
   <script>
-    let ws;
-    let playerID;
-    let players = ["", ""];
+    let ws, playerID = null;
     let scores = [0, 0];
 
-    const startScreen = document.getElementById("start-screen");
-    const gameScreen = document.getElementById("game-screen");
-    const nameInput = document.getElementById("name-input");
-    const startButton = document.getElementById("start-button");
-    const fullMessage = document.getElementById("full-message");
-    const playerNames = document.getElementById("player-names");
-    const winnerMessage = document.getElementById("winner-message");
-    const ball = document.getElementById("ball");
-    const tapButton = document.getElementById("tap-button");
+    function startGame() {
+      document.querySelector('.start-screen').classList.remove('active');
+      document.querySelector('.game-screen').classList.add('active');
 
-    startButton.addEventListener("click", () => {
-      const name = nameInput.value.trim();
-      if (!name) return;
+      const p1 = document.getElementById('name1').value || 'Player 1';
+      const p2 = document.getElementById('name2').value || 'Player 2';
+      document.getElementById('player1').textContent = p1;
+      document.getElementById('player2').textContent = p2;
 
       ws = new WebSocket("wss://move-ball-server.glitch.me");
-
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ type: "name", name }));
-      };
-
       ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
+        const msg = JSON.parse(event.data);
 
-        if (data.type === "full") {
-          fullMessage.style.display = "block";
-          return;
-        }
+        if (msg.type === "init") {
+          playerID = msg.playerID;
+        } else if (msg.type === "update") {
+          const ball = document.getElementById("ball");
+          ball.style.left = `${50 + msg.ball / 2}%`;
 
-        if (data.type === "init") {
-          playerID = data.playerID;
-          startScreen.style.display = "none";
-          gameScreen.style.display = "flex";
-        }
-
-        if (data.type === "players") {
-          players = data.players;
-          updatePlayerNames();
-        }
-
-        if (data.type === "update") {
-          updateBall(data.ball);
-          if (data.winner !== null) {
-            winnerMessage.textContent = `${players[data.winner]} wins!`;
-            scores[data.winner]++;
-            updatePlayerNames();
-          } else {
-            winnerMessage.textContent = "";
+          if (msg.winner !== null) {
+            scores[msg.winner]++;
+            document.getElementById('score1').textContent = scores[0];
+            document.getElementById('score2').textContent = scores[1];
+            document.getElementById("winner").textContent = `${msg.winner === 0 ? p1 : p2} Wins!`;
+            setTimeout(() => document.getElementById("winner").textContent = "", 3000);
           }
+        } else if (msg.type === "full") {
+          alert("Room full. Try again later.");
         }
       };
-    });
-
-    function updateBall(position) {
-      const px = 50 + position / 2;
-      ball.style.left = `${px}%`;
     }
 
-    function updatePlayerNames() {
-      const displayNames = players.map((name, i) => `${name} (P${i + 1}) [${scores[i]}]`);
-      playerNames.textContent = `${displayNames[0]} vs ${displayNames[1]}`;
-    }
-
-    tapButton.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      if (ws && playerID !== undefined) {
+    function tap() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "tap" }));
       }
+    }
+
+    document.addEventListener('touchstart', function (event) {
+      if (event.target.classList.contains('tap-button')) event.preventDefault();
     }, { passive: false });
+
+    document.addEventListener('dblclick', e => e.preventDefault());
+    document.addEventListener('gesturestart', e => e.preventDefault());
   </script>
 </body>
 </html>
