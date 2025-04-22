@@ -5,90 +5,111 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Move Ball Game</title>
   <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
     body {
       margin: 0;
-      font-family: sans-serif;
+      font-family: 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at top, #1e1e1e, #111);
+      color: #fff;
       text-align: center;
-      background: #111;
-      color: white;
       overflow: hidden;
     }
     #game {
-      position: relative;
       height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      padding: 10px;
     }
-    .bar {
-      position: relative;
-      height: 40px;
-      background: #333;
-      margin: 40px 20px;
-      border-radius: 20px;
-      overflow: hidden;
+    #titleBar {
+      padding: 20px 10px 10px;
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #ffca28;
+      text-shadow: 0 0 8px #ffca28;
     }
-    .ball {
-      position: absolute;
-      top: 5px;
-      width: 30px;
-      height: 30px;
-      background: orange;
-      border-radius: 50%;
-      transition: left 0.1s ease;
+    #nameEntry {
+      padding: 10px;
+    }
+    #nameInput {
+      padding: 12px;
+      width: 65%;
+      font-size: 1em;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+    }
+    #submitName {
+      padding: 12px 18px;
+      margin-left: 8px;
+      font-size: 1em;
+      border-radius: 8px;
+      border: none;
+      background: #2196f3;
+      color: white;
+      font-weight: bold;
     }
     .names {
       display: flex;
       justify-content: space-between;
-      margin: 0 30px;
+      margin: 20px 30px 0;
       font-size: 1.2em;
+      color: #ccc;
+    }
+    .bar {
+      position: relative;
+      height: 50px;
+      background: #444;
+      margin: 30px 20px;
+      border-radius: 25px;
+      box-shadow: inset 0 0 10px #000;
+    }
+    .ball {
+      position: absolute;
+      top: 10px;
+      width: 30px;
+      height: 30px;
+      background: #ffca28;
+      border-radius: 50%;
+      transition: left 0.1s ease;
+      box-shadow: 0 0 8px #ffca28;
     }
     #tapButton {
       font-size: 2em;
-      padding: 20px 40px;
-      margin: 30px auto;
-      background: #28a745;
+      padding: 20px;
+      margin: 0 auto 10px;
+      background: #4caf50;
       color: white;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
       width: 80%;
+      max-width: 300px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    #tapButton:active {
+      background: #388e3c;
     }
     #result {
       font-size: 1.5em;
-      margin-top: 10px;
-    }
-    #nameInput {
-      padding: 10px;
-      font-size: 1em;
-      width: 70%;
-      margin-top: 20px;
-    }
-    #submitName {
-      padding: 10px;
-      font-size: 1em;
-      margin-left: 10px;
+      margin: 10px 0;
     }
     #stats {
-      margin-bottom: 20px;
       font-size: 1em;
-      color: #ccc;
-    }
-    #titleBar {
-      padding: 20px;
-      font-size: 1.6em;
-      font-weight: bold;
+      color: #bbb;
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
   <div id="game">
-    <div id="titleBar">
-      <span style="color: orange;">⚽</span> Move Ball Game
-    </div>
+    <div id="titleBar">⚽ Move Ball Game</div>
 
     <div id="nameEntry">
       <input type="text" id="nameInput" placeholder="Enter your name" />
-      <button id="submitName">Join Game</button>
+      <button id="submitName">Join</button>
     </div>
 
     <div id="names" class="names" style="display:none;">
