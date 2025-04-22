@@ -2,184 +2,184 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Push Battle</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Move Ball Game</title>
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0d0d0d;
+      font-family: sans-serif;
+      background: #111;
       color: white;
       text-align: center;
       overflow: hidden;
     }
 
-    h1 {
-      font-size: 2.5em;
-      margin: 1em 0 0.5em;
+    .title {
+      font-size: 2em;
+      margin-top: 20px;
       text-shadow: 0 0 10px cyan;
     }
 
-    #title-ball {
+    .ball-title {
       display: inline-block;
+      margin-left: 10px;
       width: 20px;
       height: 20px;
-      background: cyan;
       border-radius: 50%;
-      margin-left: 10px;
-      animation: glow 1s infinite alternate;
+      background: cyan;
+      animation: pulse 1s infinite;
     }
 
-    @keyframes glow {
-      from { box-shadow: 0 0 5px cyan; }
-      to { box-shadow: 0 0 15px cyan; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.5); }
     }
 
-    #game {
-      margin-top: 2em;
+    .start-screen, .game-screen {
+      display: none;
+      padding-top: 30px;
     }
 
     .bar {
-      width: 100%;
+      margin: 40px auto;
       height: 10px;
       background: white;
+      width: 80%;
       position: relative;
-      margin: 20px 0;
+      border-radius: 5px;
     }
 
     .ball {
-      width: 30px;
-      height: 30px;
-      background: cyan;
-      border-radius: 50%;
       position: absolute;
-      top: -10px;
-      transition: left 0.1s linear;
+      top: -7px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: cyan;
+      transition: left 0.1s;
     }
 
     .names {
       display: flex;
-      justify-content: space-around;
-      margin: 1em 0;
-    }
-
-    .names div {
+      justify-content: space-between;
+      margin: 20px auto;
+      width: 80%;
       font-size: 1.2em;
     }
 
-    #tapButton {
-      font-size: 1.5em;
-      padding: 1em 2em;
+    button {
+      padding: 15px 30px;
+      font-size: 1em;
       background: cyan;
-      color: black;
       border: none;
       border-radius: 10px;
-      margin-top: 2em;
-      touch-action: manipulation;
+      color: #111;
+      font-weight: bold;
+      margin-top: 20px;
+      width: 80%;
+      max-width: 300px;
     }
 
-    #startScreen {
-      display: block;
-      margin-top: 4em;
-    }
-
-    #gameScreen {
-      display: none;
+    .win-message {
+      margin-top: 20px;
+      font-size: 1.2em;
+      color: #0f0;
     }
 
     input {
-      font-size: 1.2em;
-      padding: 0.5em;
-      margin: 0.5em;
-    }
-
-    .message {
-      font-size: 1.2em;
-      margin-top: 1em;
-      color: yellow;
+      padding: 10px;
+      width: 80%;
+      max-width: 300px;
+      margin: 10px 0;
+      font-size: 1em;
     }
   </style>
 </head>
 <body>
-  <h1>Push Battle <span id="title-ball"></span></h1>
+  <div class="title">Move Ball <div class="ball-title"></div></div>
 
-  <div id="startScreen">
-    <input id="nameInput" placeholder="Enter your name" />
+  <div class="start-screen">
+    <input type="text" id="nameInput" placeholder="Enter your name" />
+    <br />
     <button id="startBtn">Start</button>
-    <div class="message" id="roomStatus"></div>
+    <div id="fullMsg" style="color:red; margin-top: 10px;"></div>
   </div>
 
-  <div id="gameScreen">
+  <div class="game-screen">
     <div class="names">
-      <div id="player1Display">Player 1</div>
-      <div id="player2Display">Player 2</div>
+      <div id="name1">Player 1</div>
+      <div id="name2">Player 2</div>
     </div>
 
     <div class="bar">
-      <div class="ball" id="ball"></div>
+      <div class="ball" id="ball" style="left: 50%;"></div>
     </div>
 
-    <button id="tapButton">TAP!</button>
-    <div class="message" id="winnerMessage"></div>
+    <button id="tapBtn">TAP!</button>
+
+    <div class="win-message" id="winMsg"></div>
   </div>
 
   <script>
-    const socket = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
-    let playerID = null;
-    let playerName = "";
-    let playerNames = ["Player 1", "Player 2"];
-    let playerScores = [0, 0];
-
+    const socket = new WebSocket("wss://move-ball-server.glitch.me");
+    const startScreen = document.querySelector(".start-screen");
+    const gameScreen = document.querySelector(".game-screen");
     const startBtn = document.getElementById("startBtn");
     const nameInput = document.getElementById("nameInput");
-    const startScreen = document.getElementById("startScreen");
-    const gameScreen = document.getElementById("gameScreen");
-    const tapButton = document.getElementById("tapButton");
+    const name1 = document.getElementById("name1");
+    const name2 = document.getElementById("name2");
+    const winMsg = document.getElementById("winMsg");
+    const fullMsg = document.getElementById("fullMsg");
+
+    const tapBtn = document.getElementById("tapBtn");
     const ball = document.getElementById("ball");
-    const winnerMessage = document.getElementById("winnerMessage");
-    const player1Display = document.getElementById("player1Display");
-    const player2Display = document.getElementById("player2Display");
-    const roomStatus = document.getElementById("roomStatus");
 
-    startBtn.onclick = () => {
-      if (nameInput.value.trim()) {
-        playerName = nameInput.value.trim();
-        socket.send(JSON.stringify({ type: "setName", name: playerName }));
-        startScreen.style.display = "none";
-        gameScreen.style.display = "block";
-      }
-    };
-
-    tapButton.ontouchstart = tapButton.onclick = () => {
-      socket.send(JSON.stringify({ type: "tap" }));
-    };
+    let playerID = null;
+    let myName = "";
 
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      const msg = JSON.parse(event.data);
 
-      if (data.type === "init") {
-        playerID = data.playerID;
+      if (msg.type === "init") {
+        playerID = msg.playerID;
+        startScreen.style.display = "block";
       }
 
-      if (data.type === "update") {
-        const percent = 50 + (data.ball / 2);
-        ball.style.left = `calc(${percent}% - 15px)`;
-        playerNames = data.names;
-        playerScores = data.scores;
+      if (msg.type === "full") {
+        fullMsg.innerText = "Room full. Try again later.";
+      }
 
-        player1Display.innerText = `${playerNames[0] || "Player 1"} (${playerScores[0]})`;
-        player2Display.innerText = `${playerNames[1] || "Player 2"} (${playerScores[1]})`;
+      if (msg.type === "start") {
+        gameScreen.style.display = "block";
+        startScreen.style.display = "none";
+        name1.innerText = msg.names[0] || "Player 1";
+        name2.innerText = msg.names[1] || "Player 2";
+        winMsg.innerText = "";
+      }
 
-        if (data.winner !== null) {
-          winnerMessage.textContent = `${playerNames[data.winner]} wins!`;
-          setTimeout(() => winnerMessage.textContent = "", 3000);
+      if (msg.type === "update") {
+        const percent = (msg.ball + 100) / 200 * 100;
+        ball.style.left = `calc(${percent}% - 10px)`;
+
+        if (msg.winner !== null) {
+          const winText = msg.winner === playerID ? "You Win!" : "You Lose!";
+          winMsg.innerText = winText;
         }
       }
-
-      if (data.type === "full") {
-        roomStatus.textContent = "Room full. Try again later.";
-      }
     };
+
+    startBtn.onclick = () => {
+      myName = nameInput.value.trim();
+      if (myName.length === 0) return;
+      socket.send(JSON.stringify({ type: "start", name: myName }));
+    };
+
+    tapBtn.addEventListener("touchstart", () => {
+      socket.send(JSON.stringify({ type: "tap" }));
+    });
+    tapBtn.addEventListener("mousedown", () => {
+      socket.send(JSON.stringify({ type: "tap" }));
+    });
   </script>
 </body>
 </html>
