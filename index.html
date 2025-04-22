@@ -64,6 +64,12 @@
       margin-top: 20px;
       font-size: 16px;
     }
+
+    #stats {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #ccc;
+    }
   </style>
 </head>
 <body>
@@ -74,6 +80,7 @@
     </div>
     <button id="tap">TAP!</button>
     <div id="info">Waiting for another player...</div>
+    <div id="stats">Wins: 0 | Losses: 0</div>
   </div>
 
   <script>
@@ -84,13 +91,34 @@
     const ball = document.getElementById('ball');
     const info = document.getElementById('info');
     const tapButton = document.getElementById('tap');
+    const stats = document.getElementById('stats');
 
     function updateBall(position) {
-      // position: -100 to 100
       const barWidth = document.getElementById('bar-container').offsetWidth;
       const ballWidth = ball.offsetWidth;
       const px = ((position + 100) / 200) * (barWidth - ballWidth);
       ball.style.left = px + 'px';
+    }
+
+    function loadStats() {
+      const wins = parseInt(localStorage.getItem("wins") || "0");
+      const losses = parseInt(localStorage.getItem("losses") || "0");
+      stats.textContent = `Wins: ${wins} | Losses: ${losses}`;
+    }
+
+    function recordResult(winner) {
+      let wins = parseInt(localStorage.getItem("wins") || "0");
+      let losses = parseInt(localStorage.getItem("losses") || "0");
+
+      if (winner === playerID) {
+        wins++;
+        localStorage.setItem("wins", wins);
+      } else {
+        losses++;
+        localStorage.setItem("losses", losses);
+      }
+
+      loadStats();
     }
 
     function connect() {
@@ -108,6 +136,7 @@
           updateBall(data.ball);
           if (data.winner !== null) {
             info.textContent = data.winner === playerID ? "🎉 You Win!" : "😢 You Lose!";
+            recordResult(data.winner);
           }
         }
 
@@ -123,7 +152,7 @@
       };
     }
 
-    // Prevent iOS double-tap zoom and allow fast tapping
+    // Prevent iOS zoom and allow rapid tap
     window.addEventListener('touchstart', function (e) {
       const now = new Date().getTime();
       if (now - lastTap < 300) {
@@ -145,6 +174,7 @@
     });
 
     connect();
+    loadStats();
   </script>
 </body>
 </html>
