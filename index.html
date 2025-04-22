@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Move Ball Duel</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+    }
+    #status {
+      margin-bottom: 20px;
+    }
+    #ball {
+      width: 200px;
+      height: 20px;
+      background: #444;
+      position: relative;
+      margin: 20px auto;
+    }
+    #marker {
+      width: 20px;
+      height: 20px;
+      background: red;
+      border-radius: 50%;
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: left 0.1s ease-out;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 20px;
+      border: none;
+      border-radius: 10px;
+      background: #28a;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tap Duel!</h1>
+  <div id="status">Connecting...</div>
+  <div id="ball">
+    <div id="marker"></div>
+  </div>
+  <button id="tapButton" disabled>Tap!</button>
+
+  <script>
+    const ws = new WebSocket("wss://move-ball-server.glitch.me");
+
+    let playerID = null;
+
+    const status = document.getElementById("status");
+    const button = document.getElementById("tapButton");
+    const marker = document.getElementById("marker");
+
+    ws.onopen = () => {
+      status.textContent = "Waiting for opponent...";
+    };
+
+    ws.onmessage = (msg) => {
+      const data = JSON.parse(msg.data);
+
+      if (data.type === "init") {
+        playerID = data.playerID;
+        status.textContent = `You are Player ${playerID + 1}`;
+        button.disabled = false;
+      }
+
+      if (data.type === "update") {
+        const pos = data.ball; // from -100 to 100
+        const percent = 50 + pos / 2; // convert to 0-100%
+        marker.style.left = `${percent}%`;
+
+        if (data.winner !== null) {
+          if (data.winner === playerID) {
+            alert("🎉 You win!");
+          } else {
+            alert("😞 You lose!");
+          }
+          button.disabled = true;
+        }
+      }
+
+      if (data.type === "full") {
+        status.textContent = "Room is full. Try again later.";
+      }
+    };
+
+    button.addEventListener("click", () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "tap" }));
+      }
+    });
+  </script>
+</body>
+</html>
