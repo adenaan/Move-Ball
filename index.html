@@ -1,225 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
-  <title>Tap Soccer Duel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta charset="UTF-8">
+  <title>Soccer Tap Duel</title>
   <style>
-    * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: 'Arial', sans-serif;
-      background: #0e0e0e;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
       color: #fff;
-      text-align: center;
-      overflow: hidden;
-    }
-    h1 {
-      font-size: 2em;
-      margin: 0.5em 0;
-      color: #00f2ff;
-      text-shadow: 0 0 10px #00f2ff;
-    }
-    #startScreen, #gameScreen {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      height: 100vh;
+      overflow: hidden;
     }
-    input, button {
-      font-size: 1.2em;
-      padding: 0.5em 1em;
-      margin: 0.5em;
+    #startScreen, #gameScreen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    #startScreen input {
+      padding: 10px;
+      border-radius: 8px;
       border: none;
-      border-radius: 10px;
+      width: 80%;
+      max-width: 250px;
+      font-size: 16px;
     }
-    input {
-      width: 70%;
-      max-width: 300px;
-      text-align: center;
-    }
-    button {
-      background: #00f2ff;
+    #startScreen button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background: #00ffcc;
+      font-size: 18px;
       color: #000;
-      font-weight: bold;
-      cursor: pointer;
     }
-    #connectionStatus {
-      position: absolute;
-      top: 0.5em;
-      left: 0.5em;
-      font-size: 0.9em;
-      color: #aaa;
+    #status, #scores {
+      margin-top: 10px;
+      font-size: 16px;
     }
-    #scoreboard {
-      margin-top: 0.5em;
-      font-size: 1.2em;
-    }
-    #bar {
-      width: 90%;
-      max-width: 500px;
-      height: 10px;
-      background: linear-gradient(to right, #333, #666);
-      border-radius: 20px;
+    #arena {
       position: relative;
-      margin: 2em auto;
+      width: 100%;
+      max-width: 400px;
+      height: 40px;
+      background: #111;
+      border-radius: 20px;
+      margin: 20px 0;
+      overflow: hidden;
     }
     #ball {
       position: absolute;
-      top: -10px;
+      top: 5px;
+      left: 50%;
       width: 30px;
       height: 30px;
-      background: radial-gradient(circle, #00f2ff, #0077aa);
+      margin-left: -15px;
+      background: radial-gradient(circle, #00ffcc 0%, #006666 100%);
       border-radius: 50%;
-      box-shadow: 0 0 20px #00f2ff;
-      transition: left 0.1s ease-out;
+      box-shadow: 0 0 15px #00ffcc;
+      transition: left 0.2s ease;
     }
-    #tapButton {
-      font-size: 1.4em;
-      background: #fff;
+    #tapBtn {
+      padding: 15px 30px;
+      font-size: 20px;
+      background: #00ffcc;
       color: #000;
-      padding: 1em 2em;
-      border-radius: 15px;
-      box-shadow: 0 0 10px #00f2ff;
-      margin-top: 2em;
+      border: none;
+      border-radius: 10px;
     }
-    #winMessage {
-      font-size: 1.6em;
-      margin-top: 1em;
-      color: #00ff88;
-      animation: flash 0.5s ease-in-out 3 alternate;
-      display: none;
-    }
-    @keyframes flash {
-      0% { opacity: 1; }
-      100% { opacity: 0; }
+    #message {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 10px;
+      color: yellow;
     }
   </style>
 </head>
 <body>
 
 <div id="startScreen">
-  <h1>⚽ Tap Soccer Duel</h1>
-  <input id="nameInput" type="text" placeholder="Enter your name" />
-  <button id="startButton">Start Game</button>
+  <h2>Enter Name to Start</h2>
+  <input id="nameInput" type="text" placeholder="Your name" />
+  <button id="startBtn">Start Game</button>
 </div>
 
-<div id="gameScreen" style="display: none;">
-  <h1>⚽ Tap Soccer Duel</h1>
-  <div id="connectionStatus">Connecting...</div>
-  <div id="scoreboard">Player1: 0 — Player2: 0</div>
-  <div id="bar"><div id="ball" style="left: 50%;"></div></div>
-  <button id="tapButton">TAP</button>
-  <div id="winMessage"></div>
+<div id="gameScreen">
+  <div id="status">Connecting...</div>
+  <div id="scores"></div>
+  <div id="arena">
+    <div id="ball"></div>
+  </div>
+  <button id="tapBtn">TAP</button>
+  <div id="message"></div>
 </div>
 
 <script>
 let socket;
 let playerIndex = null;
-let names = ["Waiting...", "Waiting..."];
-let scores = [0, 0];
-let playerName = "";
+let gameStarted = false;
+let name = "";
 
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
 const nameInput = document.getElementById("nameInput");
-const startButton = document.getElementById("startButton");
-const connectionStatus = document.getElementById("connectionStatus");
-const scoreboard = document.getElementById("scoreboard");
-const tapButton = document.getElementById("tapButton");
+const startBtn = document.getElementById("startBtn");
+const statusEl = document.getElementById("status");
+const scoresEl = document.getElementById("scores");
+const tapBtn = document.getElementById("tapBtn");
 const ball = document.getElementById("ball");
-const winMessage = document.getElementById("winMessage");
+const message = document.getElementById("message");
 
-function updateScoreboard() {
-  scoreboard.textContent = `${names[0]}: ${scores[0]} — ${names[1]}: ${scores[1]}`;
-}
+startScreen.style.display = "flex";
+statusEl.textContent = "Connecting...";
 
-function showWin(winnerIndex) {
-  if (playerIndex === null) return;
+socket = new WebSocket("wss://move-ball-server.glitch.me");
 
-  if (playerIndex === winnerIndex) {
-    winMessage.textContent = "You Win!";
-    winMessage.style.color = "#00ff88";
-  } else {
-    winMessage.textContent = "You Lose!";
-    winMessage.style.color = "#ff0033";
+socket.addEventListener("open", () => {
+  statusEl.textContent = "Connected";
+});
+
+socket.addEventListener("message", event => {
+  const data = JSON.parse(event.data);
+
+  if (data.type === "init") {
+    playerIndex = data.index;
   }
-  winMessage.style.display = "block";
-  setTimeout(() => {
-    winMessage.style.display = "none";
-  }, 1500);
-}
 
-function connectWebSocket() {
-  connectionStatus.textContent = "Connecting...";
-  socket = new WebSocket("wss://move-ball-server.glitch.me");
+  if (data.type === "start") {
+    scoresEl.textContent = `${data.names[0]}: ${data.scores[0]} vs ${data.names[1]}: ${data.scores[1]}`;
+  }
 
-  socket.addEventListener("open", () => {
-    connectionStatus.textContent = "Connected";
-    socket.send(JSON.stringify({ type: "name", name: playerName }));
-  });
+  if (data.type === "ball") {
+    updateBall(data.position);
+  }
 
-  socket.addEventListener("message", (event) => {
-    const data = JSON.parse(event.data);
+  if (data.type === "win") {
+    showMessage(data.winner === playerIndex ? "You Win!" : "You Lose");
+  }
+});
 
-    if (data.type === "init") {
-      playerIndex = data.playerIndex;
-      names = data.names;
-      scores = data.scores;
-      updateScoreboard();
-      ball.style.left = "50%";
-    }
-
-    if (data.type === "names") {
-      names = data.names;
-      updateScoreboard();
-    }
-
-    if (data.type === "ball") {
-      const percent = 50 + (data.position * 10);
-      ball.style.left = `${percent}%`;
-    }
-
-    if (data.type === "win") {
-      scores = data.scores;
-      updateScoreboard();
-      showWin(data.winner);
-    }
-
-    if (data.type === "reset") {
-      scores = [0, 0];
-      names = ["Waiting...", "Waiting..."];
-      updateScoreboard();
-      ball.style.left = "50%";
-    }
-  });
-
-  socket.onclose = () => {
-    connectionStatus.textContent = "Disconnected";
-  };
-}
-
-startButton.addEventListener("click", () => {
-  playerName = nameInput.value.trim();
-  if (playerName.length === 0) return;
-
-  connectWebSocket();
-
+startBtn.addEventListener("click", () => {
+  name = nameInput.value.trim();
+  if (name === "") return;
+  socket.send(JSON.stringify({ type: "start", name }));
+  gameStarted = true;
   startScreen.style.display = "none";
   gameScreen.style.display = "flex";
 });
 
-tapButton.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-  socket?.send(JSON.stringify({ type: "tap" }));
-}, { passive: false });
-
-tapButton.addEventListener("click", () => {
-  socket?.send(JSON.stringify({ type: "tap" }));
+tapBtn.addEventListener("click", e => {
+  e.preventDefault(); // prevent zoom
+  if (gameStarted) {
+    socket.send(JSON.stringify({ type: "tap" }));
+  }
 });
+
+function updateBall(pos) {
+  const percent = 50 + pos * 45;
+  ball.style.left = `${percent}%`;
+}
+
+function showMessage(text) {
+  message.textContent = text;
+  setTimeout(() => {
+    message.textContent = "";
+  }, 1500);
+}
+
+document.addEventListener("touchstart", e => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
 </script>
 
 </body>
