@@ -1,190 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Soccer Tap Duel</title>
   <style>
-    body {
+    html, body {
       margin: 0;
-      font-family: sans-serif;
-      background: #222;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-      padding: 10px;
-    }
-
-    h1 {
-      font-size: 28px;
-      margin: 20px 0 10px;
-      text-align: center;
-    }
-
-    h1 span {
-      display: inline-block;
-      vertical-align: middle;
-    }
-
-    .soccer-ball {
-      font-size: 28px;
-      margin-right: 8px;
-    }
-
-    #startScreen, #gameScreen {
-      width: 100%;
-      max-width: 400px;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    #startScreen input, #startScreen button {
-      margin: 10px 0;
-      padding: 12px;
-      width: 90%;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-    }
-
-    #startScreen button {
-      background: #00ffcc;
-      color: #000;
-      font-weight: bold;
-    }
-
-    #status, #scores {
-      margin: 10px 0;
-      font-size: 16px;
-    }
-
-    #arena {
-      width: 100%;
-      height: 50px;
+      padding: 0;
       background: #111;
-      border-radius: 25px;
-      position: relative;
-      margin: 20px 0;
+      color: #fff;
+      font-family: sans-serif;
+      text-align: center;
       overflow: hidden;
     }
-
+    #startScreen, #status, #game, #result {
+      position: absolute;
+      width: 100%;
+      left: 0;
+    }
+    #startScreen {
+      top: 30%;
+    }
+    #status {
+      top: 10px;
+      font-size: 14px;
+      color: #ccc;
+    }
+    #game {
+      top: 60px;
+      bottom: 0;
+    }
+    #bar {
+      position: relative;
+      width: 100%;
+      height: 20px;
+      background: #333;
+      margin: 20px auto;
+      border-radius: 10px;
+      overflow: hidden;
+    }
     #ball {
       position: absolute;
-      top: 10px;
-      left: 50%;
-      width: 30px;
-      height: 30px;
-      margin-left: -15px;
-      background: radial-gradient(circle, #00ffcc, #006666);
+      top: -10px;
+      width: 40px;
+      height: 40px;
+      background: radial-gradient(circle at center, #0ff, #00f);
       border-radius: 50%;
-      box-shadow: 0 0 15px #00ffcc;
-      transition: left 0.2s ease;
+      box-shadow: 0 0 15px #0ff;
+      transition: left 0.3s ease;
     }
-
-    #tapBtn {
-      background: #00ffcc;
+    #scoreboard {
+      margin: 10px;
+      font-size: 18px;
+    }
+    #tapButton {
+      margin-top: 20px;
+      padding: 15px 40px;
+      font-size: 18px;
+      background: #0f0;
       color: #000;
-      font-size: 20px;
-      padding: 15px 30px;
       border: none;
       border-radius: 10px;
-      margin-top: 10px;
     }
-
-    #message {
-      font-size: 18px;
-      color: yellow;
-      margin-top: 12px;
-      min-height: 24px;
+    #result {
+      top: 50%;
+      font-size: 32px;
+      font-weight: bold;
+      display: none;
+    }
+    input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      width: 60%;
+      max-width: 250px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 12px 30px;
+      font-size: 16px;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
+  <div id="startScreen">
+    <h1>⚽ Soccer Tap Duel</h1>
+    <input id="nameInput" type="text" placeholder="Enter your name" /><br/>
+    <button id="startBtn">Start Game</button>
+  </div>
+  <div id="status">Connecting to server...</div>
+  <div id="game" style="display:none;">
+    <div id="scoreboard"></div>
+    <div id="bar"><div id="ball"></div></div>
+    <button id="tapButton">TAP!</button>
+  </div>
+  <div id="result"></div>
 
-<h1><span class="soccer-ball">⚽</span><span>Soccer Tap Duel</span></h1>
+  <script>
+    let socket;
+    let playerIndex = null;
+    let ball = { position: 0 };
+    const startScreen = document.getElementById("startScreen");
+    const gameDiv = document.getElementById("game");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+    const nameInput = document.getElementById("nameInput");
+    const startBtn = document.getElementById("startBtn");
+    const tapButton = document.getElementById("tapButton");
+    const scoreboard = document.getElementById("scoreboard");
+    const ballEl = document.getElementById("ball");
 
-<div id="startScreen">
-  <input id="nameInput" type="text" placeholder="Enter your name" />
-  <button id="startBtn">Start Game</button>
-</div>
+    let names = ["", ""];
+    let scores = [0, 0];
 
-<div id="gameScreen">
-  <div id="status">Connecting...</div>
-  <div id="scores">Waiting...</div>
-  <div id="arena"><div id="ball"></div></div>
-  <button id="tapBtn">TAP</button>
-  <div id="message"></div>
-</div>
+    function connect() {
+      status.innerText = "Connecting to server...";
+      socket = new WebSocket("wss://move-ball-server.glitch.me");
 
-<script>
-let socket;
-let playerIndex = null;
-let gameStarted = false;
+      socket.onopen = () => {
+        status.innerText = "Connected";
+      };
 
-const nameInput = document.getElementById("nameInput");
-const startBtn = document.getElementById("startBtn");
-const startScreen = document.getElementById("startScreen");
-const gameScreen = document.getElementById("gameScreen");
-const statusEl = document.getElementById("status");
-const scoresEl = document.getElementById("scores");
-const tapBtn = document.getElementById("tapBtn");
-const ball = document.getElementById("ball");
-const message = document.getElementById("message");
+      socket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
 
-startScreen.style.display = "flex";
+        if (msg.type === "init") {
+          playerIndex = msg.playerIndex;
+          names = msg.names;
+          scores = msg.scores;
+        }
 
-socket = new WebSocket("wss://move-ball-server.glitch.me");
+        if (msg.type === "names") {
+          names = msg.names;
+          updateScoreboard();
+        }
 
-socket.addEventListener("open", () => {
-  statusEl.textContent = "Connected";
-});
+        if (msg.type === "start") {
+          ball.position = 0;
+          moveBall();
+          result.style.display = "none";
+        }
 
-socket.addEventListener("message", event => {
-  const data = JSON.parse(event.data);
-  if (data.type === "init") {
-    playerIndex = data.index;
-  }
-  if (data.type === "start") {
-    scoresEl.textContent = `${data.names[0]}: ${data.scores[0]} vs ${data.names[1]}: ${data.scores[1]}`;
-  }
-  if (data.type === "ball") {
-    const pos = 50 + data.position * 45;
-    ball.style.left = `${pos}%`;
-  }
-  if (data.type === "win") {
-    showMessage(data.winner === playerIndex ? "You Win!" : "You Lose");
-  }
-});
+        if (msg.type === "ball") {
+          ball.position = msg.position;
+          moveBall();
+        }
 
-startBtn.addEventListener("click", () => {
-  const name = nameInput.value.trim();
-  if (!name) return;
-  socket.send(JSON.stringify({ type: "start", name }));
-  startScreen.style.display = "none";
-  gameScreen.style.display = "flex";
-  gameStarted = true;
-});
+        if (msg.type === "win") {
+          scores = msg.scores;
+          updateScoreboard();
+          const won = msg.winner === playerIndex;
+          result.innerText = won ? "You WIN!" : "You LOSE!";
+          result.style.display = "block";
+          setTimeout(() => result.style.display = "none", 1500);
+        }
 
-tapBtn.addEventListener("click", e => {
-  e.preventDefault(); // Prevent double-tap zoom
-  if (gameStarted) {
-    socket.send(JSON.stringify({ type: "tap" }));
-  }
-});
+        if (msg.type === "reset") {
+          location.reload();
+        }
+      };
+    }
 
-function showMessage(text) {
-  message.textContent = text;
-  setTimeout(() => message.textContent = "", 1500);
-}
+    function moveBall() {
+      const percent = 50 + ball.position * 10;
+      ballEl.style.left = `calc(${percent}% - 20px)`;
+    }
 
-document.addEventListener("touchstart", e => {
-  if (e.touches.length > 1) e.preventDefault();
-}, { passive: false });
-</script>
+    function updateScoreboard() {
+      scoreboard.innerText = `${names[0]}: ${scores[0]} vs ${names[1]}: ${scores[1]}`;
+    }
 
-</body>
-</html>
+    startBtn.onclick = () => {
+      const name = nameInput.value.trim();
+      if
