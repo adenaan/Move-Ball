@@ -201,11 +201,19 @@
           currentNames = data.names;
           updateScores(data.scores, data.names);
           updateBall(data.ball);
-          statusEl.textContent = "Waiting for other player...";
+          statusEl.textContent = data.names.includes(null)
+            ? "Waiting for other player..."
+            : "Game ready!";
         }
 
         if (data.type === "names" && data.names) {
-          updateScores(null, data.names);
+          currentNames = data.names;
+          updateScores(null, currentNames);
+          if (currentNames.includes(null)) {
+            statusEl.textContent = "Waiting for other player...";
+          } else {
+            statusEl.textContent = "Game ready!";
+          }
         }
 
         if (data.type === "start") {
@@ -247,14 +255,13 @@
     function updateScores(scores, names) {
       if (scores) {
         currentNames = names || currentNames;
-        p1score.textContent = `${currentNames[0]}: ${scores[0]}`;
-        p2score.textContent = `${currentNames[1]}: ${scores[1]}`;
+        p1score.textContent = `${currentNames[0] || "P1"}: ${scores[0]}`;
+        p2score.textContent = `${currentNames[1] || "P2"}: ${scores[1]}`;
       } else if (names) {
-        currentNames = names;
         const s1 = p1score.textContent.split(":")[1].trim();
         const s2 = p2score.textContent.split(":")[1].trim();
-        p1score.textContent = `${names[0]}: ${s1}`;
-        p2score.textContent = `${names[1]}: ${s2}`;
+        p1score.textContent = `${names[0] || "P1"}: ${s1}`;
+        p2score.textContent = `${names[1] || "P2"}: ${s2}`;
       }
     }
 
