@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ball Push Duel</title>
+  <title>Push Duel</title>
   <style>
     body {
       margin: 0;
-      font-family: sans-serif;
-      background: #111;
-      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #333;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -18,58 +18,78 @@
       overflow: hidden;
     }
     h1 {
-      margin: 16px;
-      font-size: 24px;
+      margin: 20px;
+      font-size: 26px;
+      color: #444;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
     .names {
       display: flex;
       justify-content: space-between;
-      width: 100%;
-      padding: 0 20px;
+      width: 90%;
+      padding: 0 10px;
       font-size: 18px;
     }
-    canvas {
-      background: #222;
-      margin: 10px 0;
+    .player-label {
+      background: #e0e0e0;
+      padding: 6px 12px;
       border-radius: 12px;
     }
+    canvas {
+      background: #fff;
+      margin: 12px 0;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
     #tapBtn {
-      padding: 20px 40px;
-      font-size: 24px;
+      padding: 18px 36px;
+      font-size: 22px;
       border: none;
-      border-radius: 12px;
-      background: #4caf50;
+      border-radius: 16px;
+      background: #00bcd4;
       color: white;
       margin: 16px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
     #startContainer {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-top: 50px;
+      padding-top: 40px;
     }
     input {
-      padding: 10px;
+      padding: 12px;
       font-size: 16px;
-      margin: 10px;
-      border-radius: 8px;
+      margin: 8px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      width: 80%;
+      max-width: 300px;
+    }
+    #startBtn {
+      padding: 12px 24px;
+      font-size: 18px;
+      border-radius: 10px;
+      background: #4caf50;
+      color: white;
       border: none;
+      margin-top: 6px;
     }
     #scoreboard {
       font-size: 16px;
-      padding: 6px 20px;
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
-  <h1>Ball Push Duel</h1>
+  <h1>Push Duel</h1>
   <div id="startContainer">
     <input type="text" id="nameInput" placeholder="Enter your name" />
     <button id="startBtn">Start</button>
   </div>
   <div class="names">
-    <div id="p1Name">Waiting...</div>
-    <div id="p2Name">Waiting...</div>
+    <div id="p1Name" class="player-label">Waiting...</div>
+    <div id="p2Name" class="player-label">Waiting...</div>
   </div>
   <canvas id="gameCanvas" width="300" height="100"></canvas>
   <div id="scoreboard">Score: 0 - 0</div>
@@ -101,7 +121,7 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.beginPath();
       ctx.arc(ballX, 50, ballRadius, 0, Math.PI * 2);
-      ctx.fillStyle = "deepskyblue";
+      ctx.fillStyle = "#00bcd4";
       ctx.fill();
     }
 
