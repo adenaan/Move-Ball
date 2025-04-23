@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>2 Player Tap Game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ball Push Duel</title>
   <style>
     body {
       margin: 0;
@@ -13,141 +13,157 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       height: 100vh;
       overflow: hidden;
     }
     h1 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
+      margin: 16px;
+      font-size: 24px;
     }
-    .name-entry, .game {
+    .names {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0 20px;
+      font-size: 18px;
+    }
+    canvas {
+      background: #222;
+      margin: 10px 0;
+      border-radius: 12px;
+    }
+    #tapBtn {
+      padding: 20px 40px;
+      font-size: 24px;
+      border: none;
+      border-radius: 12px;
+      background: #4caf50;
+      color: white;
+      margin: 16px;
+    }
+    #startContainer {
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding-top: 50px;
     }
     input {
-      padding: 0.5rem;
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-    }
-    button {
-      padding: 1rem 2rem;
-      font-size: 1.2rem;
-      background: #0f0;
-      border: none;
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px;
       border-radius: 8px;
+      border: none;
     }
-    #tapButton {
-      margin-top: 2rem;
-      background: #09f;
-    }
-    #scores {
-      margin-top: 1rem;
-      font-size: 1rem;
+    #scoreboard {
+      font-size: 16px;
+      padding: 6px 20px;
     }
   </style>
 </head>
 <body>
-
-  <h1 id="title">Tap Duel</h1>
-
-  <div id="entryScreen" class="name-entry">
-    <input id="nameInput" placeholder="Enter your name" />
+  <h1>Ball Push Duel</h1>
+  <div id="startContainer">
+    <input type="text" id="nameInput" placeholder="Enter your name" />
     <button id="startBtn">Start</button>
-    <p id="status">Connecting to server...</p>
   </div>
-
-  <div id="gameScreen" class="game" style="display:none;">
-    <div>
-      <p><strong>Player 1:</strong> <span id="player1Name">Waiting...</span></p>
-      <p><strong>Player 2:</strong> <span id="player2Name">Waiting...</span></p>
-    </div>
-    <button id="tapButton">TAP!</button>
-    <div id="scores"></div>
-    <p id="resultMessage"></p>
+  <div class="names">
+    <div id="p1Name">Waiting...</div>
+    <div id="p2Name">Waiting...</div>
   </div>
+  <canvas id="gameCanvas" width="300" height="100"></canvas>
+  <div id="scoreboard">Score: 0 - 0</div>
+  <button id="tapBtn" style="display: none;">TAP!</button>
 
   <script>
-    const socket = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
+    const socket = new WebSocket("wss://move-ball-server.glitch.me");
 
     let playerNumber = null;
-    let playerName = '';
+    let playerName = "";
+    let names = { 1: "Waiting...", 2: "Waiting..." };
+    let scores = { 1: { wins: 0, losses: 0 }, 2: { wins: 0, losses: 0 } };
 
-    const entryScreen = document.getElementById('entryScreen');
-    const gameScreen = document.getElementById('gameScreen');
-    const nameInput = document.getElementById('nameInput');
-    const startBtn = document.getElementById('startBtn');
-    const status = document.getElementById('status');
-    const player1Name = document.getElementById('player1Name');
-    const player2Name = document.getElementById('player2Name');
-    const tapButton = document.getElementById('tapButton');
-    const resultMessage = document.getElementById('resultMessage');
-    const scoresDisplay = document.getElementById('scores');
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
 
-    socket.onopen = () => {
-      status.textContent = 'Connected. Enter your name.';
-    };
+    const startBtn = document.getElementById("startBtn");
+    const nameInput = document.getElementById("nameInput");
+    const tapBtn = document.getElementById("tapBtn");
+
+    const p1Name = document.getElementById("p1Name");
+    const p2Name = document.getElementById("p2Name");
+    const scoreboard = document.getElementById("scoreboard");
+
+    let ballX = 150;
+    const ballRadius = 10;
+
+    function drawBall() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.arc(ballX, 50, ballRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "deepskyblue";
+      ctx.fill();
+    }
+
+    function updateNamesDisplay() {
+      p1Name.textContent = names[1] || "Waiting...";
+      p2Name.textContent = names[2] || "Waiting...";
+    }
+
+    function updateScoreDisplay() {
+      scoreboard.textContent = `Score: ${scores[1].wins} - ${scores[2].wins}`;
+    }
 
     socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
+      const data = JSON.parse(event.data);
 
-      if (msg.type === 'full') {
-        alert('Room full. Try again later.');
-        status.textContent = 'Room full.';
-        startBtn.disabled = true;
+      if (data.type === "assign") {
+        playerNumber = data.number;
+        scores = data.scores;
+        names = data.names;
+        updateNamesDisplay();
+        updateScoreDisplay();
       }
 
-      if (msg.type === 'assign') {
-        playerNumber = msg.number;
-        updateNames(msg.names);
-        updateScores(msg.scores);
+      if (data.type === "update-names") {
+        names = data.names;
+        updateNamesDisplay();
       }
 
-      if (msg.type === 'update-names') {
-        updateNames(msg.names);
+      if (data.type === "start") {
+        document.getElementById("startContainer").style.display = "none";
+        tapBtn.style.display = "block";
+        ballX = 150;
+        drawBall();
       }
 
-      if (msg.type === 'start') {
-        entryScreen.style.display = 'none';
-        gameScreen.style.display = 'flex';
-        resultMessage.textContent = '';
+      if (data.type === "end") {
+        scores = data.scores;
+        updateScoreDisplay();
+        const result = data.winner === playerNumber ? "You Win!" : "You Lose!";
+        alert(result);
       }
 
-      if (msg.type === 'end') {
-        const win = msg.winner === playerNumber;
-        resultMessage.textContent = win ? 'You win!' : 'You lose!';
-        updateScores(msg.scores);
-      }
-
-      if (msg.type === 'reset') {
-        entryScreen.style.display = 'flex';
-        gameScreen.style.display = 'none';
+      if (data.type === "reset") {
+        tapBtn.style.display = "none";
+        document.getElementById("startContainer").style.display = "flex";
       }
     };
 
     startBtn.onclick = () => {
-      playerName = nameInput.value.trim();
-      if (!playerName) return;
-      socket.send(JSON.stringify({ type: 'name', name: playerName }));
-      socket.send(JSON.stringify({ type: 'ready' }));
+      const name = nameInput.value.trim();
+      if (name === "") return;
+
+      playerName = name;
+      socket.send(JSON.stringify({ type: "name", name }));
+      socket.send(JSON.stringify({ type: "ready" }));
     };
 
-    tapButton.ontouchstart = tapButton.onmousedown = () => {
-      socket.send(JSON.stringify({ type: 'tap' }));
+    tapBtn.ontouchstart = tapBtn.onmousedown = () => {
+      socket.send(JSON.stringify({ type: "tap" }));
     };
 
-    function updateNames(names) {
-      player1Name.textContent = names[1] || 'Waiting...';
-      player2Name.textContent = names[2] || 'Waiting...';
-    }
-
-    function updateScores(scores) {
-      scoresDisplay.innerHTML = `
-        P1: ${scores[1].wins}W / ${scores[1].losses}L<br />
-        P2: ${scores[2].wins}W / ${scores[2].losses}L
-      `;
-    }
+    drawBall();
   </script>
 </body>
 </html>
