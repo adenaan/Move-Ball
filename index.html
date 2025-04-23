@@ -157,6 +157,7 @@
     // Support both tap and click events
     const sendTap = (e) => {
       e.preventDefault();
+      console.log("TAP FIRED"); // Test log
       socket.send(JSON.stringify({ type: 'tap' }));
     };
     tapButton.addEventListener('touchstart', sendTap);
