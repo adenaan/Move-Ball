@@ -35,6 +35,7 @@
       margin: 5px;
       font-size: 1em;
       width: 80%;
+      touch-action: manipulation;
     }
 
     #bar {
@@ -66,6 +67,7 @@
       border-radius: 10px;
       margin-top: 20px;
       width: 100%;
+      touch-action: manipulation;
     }
 
     #names {
@@ -126,9 +128,16 @@
       gameUI.style.display = 'block';
     });
 
+    function sendTap() {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'tap' }));
+      }
+    }
+
+    tapButton.addEventListener('click', sendTap);
     tapButton.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      socket.send(JSON.stringify({ type: 'tap' }));
+      sendTap();
     });
 
     socket.onmessage = (event) => {
