@@ -1,3 +1,4 @@
+<!-- Full updated index.html with active mute toggle -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -194,7 +195,7 @@
     let currentNames = ["P1", "P2"];
 
     function playSafe(audio) {
-      if (audio) {
+      if (!audio.muted) {
         audio.currentTime = 0;
         audio.play().catch(err => console.warn("Audio play failed:", err));
       }
@@ -299,8 +300,10 @@
     };
 
     gameToggle.onchange = () => {
-      console.log("Toggle is now:", gameToggle.checked);
-      // Add custom behavior here
+      const mute = gameToggle.checked;
+      tapAudio.muted = mute;
+      goalAudio.muted = mute;
+      winAudio.muted = mute;
     };
 
     connect();
