@@ -2,315 +2,102 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-  <title>Soccer Tap Arena</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>2 Player Game</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
+      font-family: sans-serif;
       background: #111;
       color: #fff;
-      font-family: 'Segoe UI', sans-serif;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
+      text-align: center;
     }
-    #startScreen, #gameScreen {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    #startScreen input, #startScreen button {
-      font-size: 1.2rem;
-      padding: 10px;
-      margin: 10px;
-      border-radius: 8px;
-      border: none;
-    }
-    #title {
-      font-size: 2rem;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    #title img {
-      width: 30px;
-      height: 30px;
-    }
-    #status {
-      font-size: 1rem;
-      margin-top: 10px;
-      color: lightgray;
-    }
-    #bar {
-      width: 80%;
-      height: 10px;
-      background: #333;
-      border-radius: 5px;
-      margin: 30px 0;
-      position: relative;
-    }
-    #ball {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #fff, #00f);
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      transition: left 0.15s ease;
-    }
-    #scoreboard {
-      display: flex;
-      gap: 30px;
-      font-size: 1.2rem;
-    }
-    #tapButton {
-      padding: 15px 30px;
-      font-size: 1.2rem;
-      background: #0af;
-      color: #000;
-      border: none;
-      border-radius: 10px;
+    #game {
       margin-top: 20px;
     }
-    #result {
-      font-size: 1.5rem;
-      margin-top: 15px;
-      color: yellow;
-      display: none;
+    #tapButton {
+      margin-top: 20px;
+      padding: 20px 40px;
+      font-size: 24px;
+      background: #0ff;
+      color: #000;
+      border: none;
+      border-radius: 12px;
     }
-    .remember-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 5px;
-    }
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 40px;
-      height: 24px;
-    }
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0;
-      right: 0; bottom: 0;
-      background-color: #ccc;
-      transition: .2s;
-      border-radius: 24px;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: black;
-      transition: .2s;
-      border-radius: 50%;
-    }
-    .switch input:checked + .slider {
-      background-color: #0af;
-    }
-    .switch input:checked + .slider:before {
-      transform: translateX(16px);
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #222;
+      border: 2px solid #0ff;
     }
   </style>
 </head>
 <body>
-  <div id="startScreen">
-    <div id="title"><img src="https://cdn-icons-png.flaticon.com/512/861/861512.png" alt="soccer" /><span>Soccer Tap Arena</span></div>
-    <input type="text" id="nameInput" placeholder="Enter your name" />
-    <div class="remember-container">
-      <label class="switch">
-        <input type="checkbox" id="rememberCheckbox" />
-        <span class="slider"></span>
-      </label>
-      <label for="rememberCheckbox">Remember Me</label>
-    </div>
-    <button id="startBtn">Start Game</button>
-    <div id="status">Connecting to server...</div>
-  </div>
-
-  <div id="gameScreen" style="display: none;">
-    <div id="title"><img src="https://cdn-icons-png.flaticon.com/512/861/861512.png" alt="soccer" /><span>Soccer Tap Arena</span></div>
-    <div id="scoreboard"><span id="p1score">P1: 0</span><span id="p2score">P2: 0</span></div>
-    <div id="bar"><div id="ball"></div></div>
+  <h1 id="gameTitle">Neon Clash</h1>
+  <div id="game">
+    <input type="text" id="playerName" placeholder="Enter your name" />
+    <button id="joinBtn">Join Game</button>
+    <p id="status">Waiting...</p>
+    <canvas id="gameCanvas" width="320" height="480"></canvas>
     <button id="tapButton">TAP</button>
-    <div id="result"></div>
   </div>
 
-  <!-- Audio Effects -->
-  <audio id="tapSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.wav" preload="auto"></audio>
-  <audio id="goalSound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.wav" preload="auto"></audio>
-  <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-notification-2018.wav" preload="auto"></audio>
+  <!-- Audio files -->
+  <audio id="tapAudio" src="sounds/tap.mp3" preload="auto"></audio>
+  <audio id="goalAudio" src="sounds/goal.mp3" preload="auto"></audio>
+  <audio id="winAudio" src="sounds/win.mp3" preload="auto"></audio>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script>
-    let socket;
-    let playerIndex = null;
-    let tapCooldown = false;
-    let rememberName = false;
-    const ballEl = document.getElementById("ball");
-    const statusEl = document.getElementById("status");
-    const startScreen = document.getElementById("startScreen");
-    const gameScreen = document.getElementById("gameScreen");
-    const nameInput = document.getElementById("nameInput");
-    const rememberCheckbox = document.getElementById("rememberCheckbox");
-    const startBtn = document.getElementById("startBtn");
-    const tapBtn = document.getElementById("tapButton");
-    const p1score = document.getElementById("p1score");
-    const p2score = document.getElementById("p2score");
-    const result = document.getElementById("result");
-    const tapSound = document.getElementById("tapSound");
-    const goalSound = document.getElementById("goalSound");
-    const winSound = document.getElementById("winSound");
-    let currentNames = ["P1", "P2"];
+    const socket = io();
+    const tapAudio = document.getElementById('tapAudio');
+    const goalAudio = document.getElementById('goalAudio');
+    const winAudio = document.getElementById('winAudio');
 
-    function connect() {
-      socket = new WebSocket("wss://move-ball-server.glitch.me");
+    const playerNameInput = document.getElementById('playerName');
+    const joinBtn = document.getElementById('joinBtn');
+    const statusText = document.getElementById('status');
+    const tapButton = document.getElementById('tapButton');
 
-      socket.onopen = () => {
-        statusEl.textContent = "Connected! Enter your name to play.";
+    let playerName = '';
 
-        const storedName = localStorage.getItem("playerName");
-        const remember = localStorage.getItem("remember") === "true";
-        rememberCheckbox.checked = remember;
-        rememberName = remember;
-
-        if (remember && storedName) {
-          nameInput.value = storedName;
-        } else {
-          nameInput.value = '';
-        }
-      };
-
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.type === "init") {
-          playerIndex = data.playerIndex;
-          currentNames = data.names;
-          updateScores(data.scores, data.names);
-          updateBall(data.ball);
-          statusEl.textContent = data.names.includes(null)
-            ? "Waiting for other player..."
-            : "Game ready!";
-        }
-
-        if (data.type === "names" && data.names) {
-          currentNames = data.names;
-          updateScores(null, currentNames);
-          if (currentNames.includes(null)) {
-            statusEl.textContent = "Waiting for other player...";
-          } else {
-            statusEl.textContent = "Game ready!";
-          }
-        }
-
-        if (data.type === "start") {
-          result.style.display = "none";
-          updateBall(data.ball);
-          updateScores(data.scores, data.names || currentNames);
-          goalSound.play();
-        }
-
-        if (data.type === "ball") {
-          updateBall(data.position);
-        }
-
-        if (data.type === "win") {
-          updateScores(data.scores, currentNames);
-          showResult(data.winner === playerIndex ? "You Win!" : "You Lose!");
-          winSound.play();
-        }
-
-        if (data.type === "reset") {
-          updateBall(0);
-        }
-      };
-
-      socket.onclose = () => {
-        statusEl.textContent = "Disconnected. Refresh to reconnect.";
-        alert("Disconnected from server. Please refresh.");
-      };
-
-      socket.onerror = (e) => {
-        console.error("WebSocket error", e);
-        statusEl.textContent = "Connection error.";
-      };
-    }
-
-    function updateBall(pos) {
-      const percent = 50 + pos * 10;
-      ballEl.style.left = `${percent}%`;
-    }
-
-    function updateScores(scores, names) {
-      if (scores) {
-        currentNames = names || currentNames;
-        p1score.textContent = `${currentNames[0] || "P1"}: ${scores[0]}`;
-        p2score.textContent = `${currentNames[1] || "P2"}: ${scores[1]}`;
-      } else if (names) {
-        const s1 = p1score.textContent.split(":")[1].trim();
-        const s2 = p2score.textContent.split(":")[1].trim();
-        p1score.textContent = `${names[0] || "P1"}: ${s1}`;
-        p2score.textContent = `${names[1] || "P2"}: ${s2}`;
+    joinBtn.addEventListener('click', () => {
+      playerName = playerNameInput.value.trim();
+      if (playerName) {
+        socket.emit('join', playerName);
+        joinBtn.disabled = true;
+        playerNameInput.disabled = true;
+        statusText.textContent = 'Waiting for opponent...';
       }
-    }
+    });
 
-    function showResult(msg) {
-      result.textContent = msg;
-      result.style.display = "block";
-      setTimeout(() => result.style.display = "none", 2500);
-    }
-
-    rememberCheckbox.onchange = () => {
-      rememberName = rememberCheckbox.checked;
-      localStorage.setItem("remember", rememberName);
-    };
-
-    startBtn.onclick = () => {
-      const name = nameInput.value.trim() || "Player";
-      if (rememberName) {
-        localStorage.setItem("playerName", name);
-      } else {
-        localStorage.removeItem("playerName");
+    tapButton.addEventListener('click', () => {
+      if (playerName) {
+        tapAudio.currentTime = 0;
+        tapAudio.play();
+        socket.emit('tap');
       }
-      socket.send(JSON.stringify({ type: "name", name }));
-      startScreen.style.display = "none";
-      gameScreen.style.display = "flex";
-    };
+    });
 
-    tapBtn.ontouchstart = tapBtn.onclick = (e) => {
-      e.preventDefault();
-      if (tapCooldown) return;
-      tapCooldown = true;
-      tapSound.play();
-      socket.send(JSON.stringify({ type: "tap" }));
-      setTimeout(() => { tapCooldown = false; }, 150);
-    };
+    socket.on('goal', (data) => {
+      goalAudio.currentTime = 0;
+      goalAudio.play();
+      // You can also update goal UI here
+    });
 
-    document.addEventListener('gesturestart', (e) => e.preventDefault());
-    document.addEventListener('dblclick', (e) => e.preventDefault());
+    socket.on('win', (data) => {
+      winAudio.currentTime = 0;
+      winAudio.play();
+      statusText.textContent = `${data.winner} wins!`;
+    });
 
-    connect();
+    socket.on('start', (players) => {
+      statusText.textContent = `Game started!`;
+    });
+
+    socket.on('waiting', () => {
+      statusText.textContent = 'Waiting for opponent...';
+    });
   </script>
 </body>
 </html>
