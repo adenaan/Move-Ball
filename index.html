@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Tap Duel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
+  <title>Tap Soccer Duel</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -14,11 +14,16 @@
       text-align: center;
       overflow: hidden;
     }
+    h1 {
+      font-size: 2em;
+      margin: 0.5em 0;
+      color: #00f2ff;
+      text-shadow: 0 0 10px #00f2ff;
+    }
     #startScreen, #gameScreen {
       position: absolute;
       top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100vw; height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -50,7 +55,7 @@
       color: #aaa;
     }
     #scoreboard {
-      margin-top: 1em;
+      margin-top: 0.5em;
       font-size: 1.2em;
     }
     #bar {
@@ -82,7 +87,7 @@
       margin-top: 2em;
     }
     #winMessage {
-      font-size: 1.8em;
+      font-size: 1.6em;
       margin-top: 1em;
       color: #00ff88;
       animation: flash 0.5s ease-in-out 3 alternate;
@@ -97,12 +102,13 @@
 <body>
 
 <div id="startScreen">
-  <h1>Tap Duel</h1>
+  <h1>⚽ Tap Soccer Duel</h1>
   <input id="nameInput" type="text" placeholder="Enter your name" />
   <button id="startButton">Start Game</button>
 </div>
 
 <div id="gameScreen" style="display: none;">
+  <h1>⚽ Tap Soccer Duel</h1>
   <div id="connectionStatus">Connecting...</div>
   <div id="scoreboard">Player1: 0 — Player2: 0</div>
   <div id="bar"><div id="ball" style="left: 50%;"></div></div>
@@ -132,7 +138,15 @@ function updateScoreboard() {
 }
 
 function showWin(winnerIndex) {
-  winMessage.textContent = `${names[winnerIndex]} wins!`;
+  if (playerIndex === null) return;
+
+  if (playerIndex === winnerIndex) {
+    winMessage.textContent = "You Win!";
+    winMessage.style.color = "#00ff88";
+  } else {
+    winMessage.textContent = "You Lose!";
+    winMessage.style.color = "#ff0033";
+  }
   winMessage.style.display = "block";
   setTimeout(() => {
     winMessage.style.display = "none";
@@ -148,7 +162,7 @@ function connectWebSocket() {
     socket.send(JSON.stringify({ type: "name", name: playerName }));
   });
 
-  socket.onmessage = (event) => {
+  socket.addEventListener("message", (event) => {
     const data = JSON.parse(event.data);
 
     if (data.type === "init") {
@@ -156,6 +170,7 @@ function connectWebSocket() {
       names = data.names;
       scores = data.scores;
       updateScoreboard();
+      ball.style.left = "50%";
     }
 
     if (data.type === "names") {
@@ -180,7 +195,7 @@ function connectWebSocket() {
       updateScoreboard();
       ball.style.left = "50%";
     }
-  };
+  });
 
   socket.onclose = () => {
     connectionStatus.textContent = "Disconnected";
