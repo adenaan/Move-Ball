@@ -157,10 +157,10 @@
     <div id="result"></div>
   </div>
 
-  <!-- AUDIO ELEMENTS -->
-  <audio id="tapAudio" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f5f1dbf5c4.mp3?filename=click-124467.mp3" preload="auto"></audio>
-  <audio id="goalAudio" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_763c63ed98.mp3?filename=short-success-sound-glockenspiel-treasure-video-game-6346.mp3" preload="auto"></audio>
-  <audio id="winAudio" src="https://cdn.pixabay.com/download/audio/2022/10/25/audio_31ff5e0f6e.mp3?filename=game-win-sound-5-199868.mp3" preload="auto"></audio>
+  <!-- CUSTOM AUDIO FILES (USE YOUR OWN PATHS BELOW) -->
+  <audio id="tapAudio" src="audio/tap.mp3" preload="auto"></audio>
+  <audio id="goalAudio" src="audio/goal.mp3" preload="auto"></audio>
+  <audio id="winAudio" src="audio/win.mp3" preload="auto"></audio>
 
   <script>
     let socket;
@@ -183,75 +183,58 @@
     const winAudio = document.getElementById("winAudio");
     let currentNames = ["P1", "P2"];
 
+    function playSafe(audio) {
+      if (audio) {
+        audio.currentTime = 0;
+        audio.play().catch(err => console.warn("Audio play failed:", err));
+      }
+    }
+
     function connect() {
       socket = new WebSocket("wss://move-ball-server.glitch.me");
 
       socket.onopen = () => {
         statusEl.textContent = "Connected! Enter your name to play.";
-
         const storedName = localStorage.getItem("playerName");
         const remember = localStorage.getItem("remember") === "true";
         rememberCheckbox.checked = remember;
         rememberName = remember;
-
-        if (remember && storedName) {
-          nameInput.value = storedName;
-        } else {
-          nameInput.value = '';
-        }
+        nameInput.value = remember && storedName ? storedName : '';
       };
 
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
-
         if (data.type === "init") {
           playerIndex = data.playerIndex;
           currentNames = data.names;
           updateScores(data.scores, data.names);
           updateBall(data.ball);
-          statusEl.textContent = data.names.includes(null)
-            ? "Waiting for other player..."
-            : "Game ready!";
+          statusEl.textContent = data.names.includes(null) ? "Waiting for other player..." : "Game ready!";
         }
-
         if (data.type === "names" && data.names) {
           currentNames = data.names;
           updateScores(null, currentNames);
-          statusEl.textContent = data.names.includes(null)
-            ? "Waiting for other player..."
-            : "Game ready!";
         }
-
         if (data.type === "start") {
           result.style.display = "none";
           updateBall(data.ball);
           updateScores(data.scores, data.names || currentNames);
         }
-
         if (data.type === "ball") {
           updateBall(data.position);
-          goalAudio.play();
+          playSafe(goalAudio);
         }
-
         if (data.type === "win") {
           updateScores(data.scores, currentNames);
           showResult(data.winner === playerIndex ? "You Win!" : "You Lose!");
-          winAudio.play();
+          playSafe(winAudio);
         }
-
-        if (data.type === "reset") {
-          updateBall(0);
-        }
+        if (data.type === "reset") updateBall(0);
       };
 
       socket.onclose = () => {
         statusEl.textContent = "Disconnected. Refresh to reconnect.";
-        alert("Disconnected from server. Please refresh.");
-      };
-
-      socket.onerror = (e) => {
-        console.error("WebSocket error", e);
-        statusEl.textContent = "Connection error.";
+        alert("Disconnected from server.");
       };
     }
 
@@ -301,8 +284,8 @@
       if (tapCooldown) return;
       tapCooldown = true;
       socket.send(JSON.stringify({ type: "tap" }));
-      tapAudio.play();
-      setTimeout(() => { tapCooldown = false; }, 150);
+      playSafe(tapAudio);
+      setTimeout(() => (tapCooldown = false), 100);
     };
 
     connect();
