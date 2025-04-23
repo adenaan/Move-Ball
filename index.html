@@ -1,179 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Neon Clash</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tap Arena</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      background: #000;
-      color: #fff;
-      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom, #1e1e2f, #2d2d44);
+      font-family: 'Arial', sans-serif;
+      color: white;
+      text-align: center;
       overflow: hidden;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+    }
+
+    #title {
+      font-size: 2em;
+      padding: 20px;
+      text-shadow: 0 0 10px #00f0ff;
     }
 
     #startScreen, #gameScreen {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      display: flex;
+      display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      height: calc(100vh - 60px);
     }
 
-    #gameScreen { display: none; }
-
-    h1 {
-      font-size: 2em;
-      color: #0ff;
-      text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+    #startScreen.active, #gameScreen.active {
+      display: flex;
     }
 
     input {
-      font-size: 1.2em;
-      padding: 0.5em;
-      margin: 1em 0;
+      padding: 10px;
+      font-size: 1em;
+      margin: 10px;
       border-radius: 8px;
       border: none;
-      outline: none;
+      width: 70%;
     }
 
     button {
-      font-size: 1.4em;
-      padding: 0.8em 2em;
-      background: #0ff;
-      color: #000;
+      padding: 15px 30px;
+      font-size: 1.1em;
       border: none;
-      border-radius: 12px;
-      box-shadow: 0 0 10px #0ff;
-      margin-top: 1em;
+      border-radius: 10px;
+      margin-top: 20px;
+      background: #00f0ff;
+      color: #000;
+      font-weight: bold;
+      transition: background 0.3s;
     }
 
-    #arena {
+    button:active {
+      background: #00c0cc;
+    }
+
+    #bar {
       width: 90%;
-      height: 60px;
-      background: #111;
-      border-radius: 30px;
-      box-shadow: inset 0 0 10px #0ff;
-      margin: 2em 0;
+      height: 10px;
+      background: #444;
+      border-radius: 10px;
       position: relative;
+      margin: 30px 0;
     }
 
     #ball {
-      width: 40px;
-      height: 40px;
-      background: #f0f;
+      width: 30px;
+      height: 30px;
+      background: #00f0ff;
       border-radius: 50%;
       position: absolute;
-      top: 10px;
+      top: -10px;
       left: 50%;
       transform: translateX(-50%);
       transition: left 0.1s;
-      box-shadow: 0 0 15px #f0f;
     }
 
-    #names, #score {
+    .playerName {
+      font-size: 1.1em;
+      margin: 10px;
+    }
+
+    #status {
+      margin: 15px;
       font-size: 1.2em;
-      text-align: center;
-      margin-top: 0.5em;
-    }
-
-    #tapBtn {
-      font-size: 1.6em;
-      padding: 1em 2em;
-      background: #ff0;
-      color: #000;
-      border: none;
-      border-radius: 12px;
-      box-shadow: 0 0 10px #ff0;
-      touch-action: manipulation;
     }
   </style>
 </head>
 <body>
-  <div id="startScreen">
-    <h1>Neon Clash</h1>
+  <div id="title">⚡ Tap Arena ⚡</div>
+
+  <div id="startScreen" class="active">
     <input type="text" id="nameInput" placeholder="Enter your name" />
     <button onclick="startGame()">Start</button>
-    <div id="status" style="margin-top: 1em; color: #f66;"></div>
+    <div id="roomStatus" style="margin-top:10px;"></div>
   </div>
 
   <div id="gameScreen">
-    <div id="names">Player 1 vs Player 2</div>
-    <div id="score">Score: 0 - 0</div>
-    <div id="arena"><div id="ball"></div></div>
-    <button id="tapBtn" onclick="sendTap()">TAP!</button>
+    <div id="playerNames">
+      <div class="playerName" id="player1Display"></div>
+      <div class="playerName" id="player2Display"></div>
+    </div>
+
+    <div id="bar">
+      <div id="ball"></div>
+    </div>
+
+    <div id="status"></div>
+    <button onclick="sendTap()">TAP</button>
   </div>
 
   <script>
-    let ws, playerID = null, name = "", names = ["Waiting", "Waiting"];
-    let scores = [0, 0];
+    let socket;
+    let playerID = null;
+    let playerNames = ["", ""];
+    let myName = "";
 
     function startGame() {
-      name = document.getElementById("nameInput").value.trim();
-      if (!name) return;
-      ws = new WebSocket("wss://move-ball-server.glitch.me");
+      myName = document.getElementById("nameInput").value.trim();
+      if (!myName) return;
 
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ type: "name", name }));
-      };
+      socket = new WebSocket("wss://move-ball-server.glitch.me");
 
-      ws.onmessage = (event) => {
+      socket.addEventListener("open", () => {
+        socket.send(JSON.stringify({ type: "join", name: myName }));
+      });
+
+      socket.addEventListener("message", (event) => {
         const msg = JSON.parse(event.data);
 
         if (msg.type === "full") {
-          document.getElementById("status").textContent = "Room full. Try again.";
+          document.getElementById("roomStatus").innerText = "Room full. Try again later.";
         }
 
         if (msg.type === "init") {
           playerID = msg.playerID;
-          names = msg.names;
-          scores = msg.scores || [0, 0];
-          document.getElementById("startScreen").style.display = "none";
-          document.getElementById("gameScreen").style.display = "flex";
-          updateUI(msg.ball);
+          playerNames[playerID] = myName;
+          updateNameDisplays();
+          document.getElementById("startScreen").classList.remove("active");
+          document.getElementById("gameScreen").classList.add("active");
+        }
+
+        if (msg.type === "names") {
+          playerNames = msg.names;
+          updateNameDisplays();
         }
 
         if (msg.type === "update") {
-          names = msg.names;
-          scores = msg.scores;
-          updateUI(msg.ball);
+          const ball = document.getElementById("ball");
+          const percent = (msg.ball + 100) / 200;
+          const barWidth = document.getElementById("bar").offsetWidth;
+          const left = percent * barWidth;
+          ball.style.left = `${left}px`;
+
           if (msg.winner !== null) {
-            const winnerName = names[msg.winner];
-            const loserName = names[1 - msg.winner];
-            if (playerID === msg.winner) {
-              alert(`🎉 ${winnerName} wins!`);
-            } else {
-              alert(`💥 ${loserName} loses!`);
-            }
+            const status = msg.winner === playerID ? "🎉 You Win!" : "😢 You Lose!";
+            document.getElementById("status").innerText = status;
+          } else {
+            document.getElementById("status").innerText = "";
           }
         }
-      };
+      });
+    }
+
+    function updateNameDisplays() {
+      document.getElementById("player1Display").innerText = "Player 1: " + (playerNames[0] || "Waiting...");
+      document.getElementById("player2Display").innerText = "Player 2: " + (playerNames[1] || "Waiting...");
     }
 
     function sendTap() {
-      if (ws && playerID !== null) {
-        ws.send(JSON.stringify({ type: "tap" }));
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "tap" }));
       }
     }
 
-    function updateUI(ballPos) {
-      const ball = document.getElementById("ball");
-      const arena = document.getElementById("arena");
-      const arenaWidth = arena.clientWidth;
-      const leftPos = (ballPos + 100) / 200 * arenaWidth;
-      ball.style.left = `${leftPos}px`;
-
-      document.getElementById("names").textContent = `${names[0]} vs ${names[1]}`;
-      document.getElementById("score").textContent = `Score: ${scores[0]} - ${scores[1]}`;
-    }
+    // Prevent iPhone double-tap zoom
+    document.addEventListener('touchstart', function(event) {
+      if (event.touches.length > 1) event.preventDefault();
+    }, { passive: false });
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(event) {
+      const now = new Date().getTime();
+      if (now - lastTouchEnd <= 300) event.preventDefault();
+      lastTouchEnd = now;
+    }, false);
   </script>
 </body>
 </html>
