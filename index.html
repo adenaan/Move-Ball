@@ -1,183 +1,64 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tap Clash</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom right, #c1dfc4, #deecdd);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+const ws = new WebSocket(location.origin.replace(/^http/, 'ws'));
+let playerIndex = null;
+let playerNames = [];
+let myName = '';
 
-    #game {
-      max-width: 400px;
-      width: 90%;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-      padding: 20px;
-      text-align: center;
-    }
+const playersDiv = document.getElementById('players');
+const nameInput = document.getElementById('nameInput');
+const tapBtn = document.getElementById('tapBtn');
+const ballDiv = document.getElementById('ball');
+const messageDiv = document.getElementById('message');
 
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 10px;
-      color: #333;
-    }
+nameInput.addEventListener('change', () => {
+  myName = nameInput.value.trim();
+  if (myName) {
+    ws.send(JSON.stringify({ type: 'name', name: myName }));
+  }
+});
 
-    .names {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 1rem;
-      margin-bottom: 10px;
-      color: #555;
-    }
+tapBtn.addEventListener('click', () => {
+  ws.send(JSON.stringify({ type: 'tap' }));
+});
 
-    #score {
-      font-weight: bold;
-    }
+ws.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
 
-    #arena {
-      background: #f0f0f0;
-      border-radius: 10px;
-      margin: 15px 0;
-      height: 60px;
-      position: relative;
-    }
+  if (msg.type === 'init') {
+    playerIndex = msg.playerIndex;
+    playerNames = msg.names;
+    updatePlayers();
+  }
 
-    #ball {
-      width: 20px;
-      height: 20px;
-      background: #4caf50;
-      border-radius: 50%;
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      transition: left 0.2s ease;
-    }
+  if (msg.type === 'names') {
+    playerNames = msg.names;
+    updatePlayers();
+  }
 
-    .buttons {
-      margin: 15px 0;
-    }
+  if (msg.type === 'ball') {
+    ballDiv.textContent = msg.direction === 0 ? '⬅️' : '➡️';
+  }
 
-    #tapButton {
-      background: #4caf50;
-      color: white;
-      border: none;
-      padding: 14px 28px;
-      font-size: 1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
+  if (msg.type === 'win') {
+    messageDiv.textContent = `${playerNames[msg.winner]} wins!`;
+  }
 
-    #tapButton:active {
-      background: #388e3c;
-    }
+  if (msg.type === 'start') {
+    messageDiv.textContent = '';
+    ballDiv.textContent = '⚪';
+  }
 
-    .footer {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
+  if (msg.type === 'reset') {
+    messageDiv.textContent = 'Player left. Resetting...';
+    ballDiv.textContent = '⚪';
+    playersDiv.textContent = 'Waiting for players...';
+  }
 
-    #nameInput {
-      flex: 1;
-      padding: 10px;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
+  if (msg.type === 'full') {
+    messageDiv.textContent = 'Game full. Please try again later.';
+    tapBtn.disabled = true;
+  }
+};
 
-    #nameButton {
-      padding: 10px 15px;
-      font-size: 1rem;
-      background: #2196f3;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    #nameButton:active {
-      background: #1976d2;
-    }
-  </style>
-</head>
-<body>
-  <div id="game">
-    <h1>⚡ Tap Clash</h1>
-    <div class="names">
-      <div id="name0" class="player-name">Waiting...</div>
-      <div id="score">0 - 0</div>
-      <div id="name1" class="player-name">Waiting...</div>
-    </div>
-    <div id="arena">
-      <div id="ball"></div>
-    </div>
-    <div class="buttons">
-      <button id="tapButton">TAP</button>
-    </div>
-    <div class="footer">
-      <input type="text" id="nameInput" placeholder="Your name">
-      <button id="nameButton">Join</button>
-    </div>
-  </div>
-
-  <script>
-    const socket = new WebSocket('wss://move-ball-server.glitch.me');
-
-    let playerIndex = null;
-    let playerName = '';
-    let names = ["Waiting...", "Waiting..."];
-    let score = [0, 0];
-
-    const name0 = document.getElementById("name0");
-    const name1 = document.getElementById("name1");
-    const scoreDisplay = document.getElementById("score");
-    const ball = document.getElementById("ball");
-    const tapButton = document.getElementById("tapButton");
-
-    document.getElementById("nameButton").onclick = () => {
-      const input = document.getElementById("nameInput").value.trim();
-      if (input.length > 0) {
-        playerName = input;
-        socket.send(JSON.stringify({ type: "join", name: input }));
-      }
-    };
-
-    tapButton.onclick = () => {
-      if (playerIndex !== null) {
-        socket.send(JSON.stringify({ type: "tap", index: playerIndex }));
-      }
-    };
-
-    socket.onmessage = (msg) => {
-      const data = JSON.parse(msg.data);
-
-      if (data.type === "init") {
-        playerIndex = data.index;
-      }
-
-      if (data.type === "state") {
-        names = data.names;
-        score = data.score;
-        const pos = data.position;
-        name0.textContent = names[0] || "Waiting...";
-        name1.textContent = names[1] || "Waiting...";
-        scoreDisplay.textContent = `${score[0]} - ${score[1]}`;
-        const percent = (pos + 1) * 50; // pos -1 to 1
-        ball.style.left = percent + "%";
-      }
-    };
-  </script>
-</body>
-</html>
+function updatePlayers() {
+  playersDiv.textContent = `You: ${playerNames[playerIndex] || '...'}. Opponent: ${playerNames[1 - playerIndex] || 'waiting...'}`;
+}
