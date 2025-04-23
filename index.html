@@ -1,141 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tap Arena</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Fast Tap Clash</title>
   <style>
-    body {
+    html, body {
       margin: 0;
-      font-family: sans-serif;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
       background: #111;
       color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      overflow: hidden;
-    }
-    h1 {
-      font-size: 2rem;
-      margin: 1rem;
-      display: flex;
-      align-items: center;
-    }
-    h1 span.ball {
-      width: 1rem;
-      height: 1rem;
-      background: #0ff;
-      border-radius: 50%;
-      margin-left: 0.5rem;
-    }
-    #startScreen, #gameScreen {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-    }
-    #tapBar {
-      width: 90vw;
-      height: 10px;
-      background: white;
-      position: relative;
-      margin: 2rem 0;
-    }
-    #ball {
-      width: 20px;
-      height: 20px;
-      background: #0ff;
-      border-radius: 50%;
-      position: absolute;
-      top: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    .tapButton {
-      background: #0ff;
-      border: none;
-      padding: 1rem 2rem;
-      font-size: 1.2rem;
-      margin: 1rem;
-      border-radius: 12px;
+      font-family: 'Segoe UI', sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
       touch-action: manipulation;
     }
-    .nameBox {
-      margin: 1rem;
+    #title {
+      text-align: center;
+      font-size: 2.2em;
+      padding: 20px 10px;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff;
     }
-    .scoreBoard {
+    #gameArea {
       display: flex;
-      justify-content: space-around;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      height: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    #namesArea, #tapArea, #scoreArea {
+      text-align: center;
+    }
+    .tap-btn {
+      width: 90%;
+      padding: 20px;
+      font-size: 1.5em;
+      border-radius: 10px;
+      border: none;
+      margin: 10px 0;
+      background: #0ff;
+      color: #000;
+      font-weight: bold;
+    }
+    .tap-btn:active {
+      background: #0cc;
+    }
+    #bar {
       width: 100%;
+      height: 10px;
+      background: #333;
+      position: relative;
+      margin: 20px 0;
+    }
+    #ball {
+      position: absolute;
+      top: -8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #0ff;
+      box-shadow: 0 0 10px #0ff;
+    }
+    input[type="text"] {
+      padding: 10px;
+      margin: 10px;
+      width: 80%;
+      font-size: 1.2em;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    #startBtn {
+      padding: 12px 20px;
+      font-size: 1.2em;
+      margin: 10px;
+      border-radius: 8px;
+      background: #0ff;
+      color: #000;
+      font-weight: bold;
+      border: none;
     }
   </style>
 </head>
 <body>
-  <h1>Tap Arena <span class="ball"></span></h1>
-  <div id="startScreen">
-    <div class="nameBox">
-      <input type="text" id="nameInput" placeholder="Enter your name" />
+  <div id="title">Fast Tap Clash <span id="titleBall">🔵</span></div>
+
+  <div id="gameArea">
+    <div id="namesArea">
+      <input id="nameInput" placeholder="Enter your name" />
+      <button id="startBtn">Start</button>
     </div>
-    <button class="tapButton" onclick="startGame()">Start</button>
-  </div>
-  <div id="gameScreen">
-    <div class="scoreBoard">
-      <div id="p1">Player 1: Waiting...</div>
-      <div id="p2">Player 2: Waiting...</div>
+
+    <div id="scoreArea" style="display:none">
+      <p><span id="player1Display">Player 1</span> Wins: <span id="p1Score">0</span></p>
+      <p><span id="player2Display">Player 2</span> Wins: <span id="p2Score">0</span></p>
     </div>
-    <div id="tapBar">
+
+    <div id="bar" style="display:none">
       <div id="ball"></div>
     </div>
-    <button class="tapButton" onclick="sendTap()">Tap</button>
+
+    <div id="tapArea" style="display:none">
+      <button class="tap-btn" id="tapBtn">TAP!</button>
+    </div>
   </div>
 
   <script>
-    const socket = new WebSocket("ws://" + location.host);
-    let playerID = null;
-    let playerName = "";
+    // This is a placeholder. You should place your client-side WebSocket and game logic here.
+    // Example placeholders for the tap logic
+    document.getElementById('startBtn').addEventListener('click', () => {
+      const name = document.getElementById('nameInput').value.trim();
+      if (!name) return alert('Enter your name');
 
-    socket.addEventListener("message", (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.type === "init") {
-        playerID = data.playerID;
-        document.getElementById("startScreen").style.display = "none";
-        document.getElementById("gameScreen").style.display = "flex";
-      }
-
-      if (data.type === "players") {
-        document.getElementById("p1").innerText = `Player 1: ${data.names[0] || "Waiting..."}`;
-        document.getElementById("p2").innerText = `Player 2: ${data.names[1] || "Waiting..."}`;
-      }
-
-      if (data.type === "update") {
-        const ball = document.getElementById("ball");
-        ball.style.left = (50 + data.ball / 2) + "%";
-        document.getElementById("p1").innerText = `Player 1: ${data.names[0]}`;
-        document.getElementById("p2").innerText = `Player 2: ${data.names[1]}`;
-
-        if (data.winner !== null) {
-          const msg = playerID === data.winner ? "You win!" : "You lose!";
-          alert(msg);
-        }
-      }
-
-      if (data.type === "full") {
-        alert("Room full. Try again later.");
-      }
+      // Simulate game start
+      document.getElementById('namesArea').style.display = 'none';
+      document.getElementById('bar').style.display = 'block';
+      document.getElementById('tapArea').style.display = 'block';
+      document.getElementById('scoreArea').style.display = 'block';
+      document.getElementById('player1Display').textContent = name;
     });
 
-    function startGame() {
-      const name = document.getElementById("nameInput").value.trim();
-      if (!name) return;
-      playerName = name;
-      socket.send(JSON.stringify({ type: "join", name: playerName }));
-    }
-
-    function sendTap() {
-      socket.send(JSON.stringify({ type: "tap" }));
-    }
+    document.getElementById('tapBtn').addEventListener('touchstart', (e) => {
+      e.preventDefault(); // Prevent zooming on double-tap
+      console.log('Tapped');
+      // move ball, update score, etc.
+    }, { passive: false });
   </script>
 </body>
 </html>
