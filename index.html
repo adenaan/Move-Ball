@@ -2,199 +2,200 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Tap Duel</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: sans-serif;
-      background: #111;
+      font-family: 'Arial', sans-serif;
+      background: #0e0e0e;
       color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      touch-action: manipulation;
-    }
-
-    .screen {
       text-align: center;
-      width: 100%;
-      max-width: 400px;
-      padding: 20px;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    input, button {
-      padding: 10px;
-      margin: 10px;
-      font-size: 1rem;
-      width: 100%;
-      border-radius: 10px;
-      border: none;
-    }
-
-    #bar {
-      background: #333;
-      border-radius: 30px;
-      height: 20px;
-      margin: 40px 0;
-      position: relative;
       overflow: hidden;
     }
-
+    #startScreen, #gameScreen {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    input, button {
+      font-size: 1.2em;
+      padding: 0.5em 1em;
+      margin: 0.5em;
+      border: none;
+      border-radius: 10px;
+    }
+    input {
+      width: 70%;
+      max-width: 300px;
+      text-align: center;
+    }
+    button {
+      background: #00f2ff;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #connectionStatus {
+      position: absolute;
+      top: 0.5em;
+      left: 0.5em;
+      font-size: 0.9em;
+      color: #aaa;
+    }
+    #scoreboard {
+      margin-top: 1em;
+      font-size: 1.2em;
+    }
+    #bar {
+      width: 90%;
+      max-width: 500px;
+      height: 10px;
+      background: linear-gradient(to right, #333, #666);
+      border-radius: 20px;
+      position: relative;
+      margin: 2em auto;
+    }
     #ball {
+      position: absolute;
+      top: -10px;
       width: 30px;
       height: 30px;
-      background: #0ff;
+      background: radial-gradient(circle, #00f2ff, #0077aa);
       border-radius: 50%;
-      position: absolute;
-      top: -5px;
-      left: 50%;
-      transform: translateX(-50%);
-      box-shadow: 0 0 20px #0ff;
-      transition: left 0.2s ease;
+      box-shadow: 0 0 20px #00f2ff;
+      transition: left 0.1s ease-out;
     }
-
-    #tapBtn {
-      background: #0f0;
-      font-weight: bold;
-      font-size: 1.2rem;
-      box-shadow: 0 0 10px #0f0;
+    #tapButton {
+      font-size: 1.4em;
+      background: #fff;
+      color: #000;
+      padding: 1em 2em;
+      border-radius: 15px;
+      box-shadow: 0 0 10px #00f2ff;
+      margin-top: 2em;
     }
-
-    #scoreboard {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      font-size: 1.2rem;
+    #winMessage {
+      font-size: 1.8em;
+      margin-top: 1em;
+      color: #00ff88;
+      animation: flash 0.5s ease-in-out 3 alternate;
+      display: none;
     }
-
-    #message {
-      font-size: 1.5rem;
-      margin: 10px 0;
-      color: yellow;
+    @keyframes flash {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
     }
   </style>
 </head>
 <body>
-  <div id="start-screen" class="screen">
-    <h1>Tap Duel</h1>
-    <input type="text" id="nameInput" placeholder="Enter your name" />
-    <button id="startBtn">Start</button>
-    <p id="connectionStatus">Connecting...</p>
-  </div>
 
-  <div id="game-screen" class="screen hidden">
-    <div id="scoreboard">
-      <span id="player1-name">Player 1</span> <span id="score1">0</span>
-      <span id="player2-name">Player 2</span> <span id="score2">0</span>
-    </div>
-    <div id="bar">
-      <div id="ball"></div>
-    </div>
-    <div id="message"></div>
-    <button id="tapBtn">TAP</button>
-  </div>
+<div id="startScreen">
+  <h1>Tap Duel</h1>
+  <input id="nameInput" type="text" placeholder="Enter your name" />
+  <button id="startButton">Start Game</button>
+</div>
 
-  <script>
-    let socket;
-    let playerIndex = null;
-    let myName = "";
-    const startScreen = document.getElementById("start-screen");
-    const gameScreen = document.getElementById("game-screen");
-    const startBtn = document.getElementById("startBtn");
-    const nameInput = document.getElementById("nameInput");
-    const tapBtn = document.getElementById("tapBtn");
-    const ball = document.getElementById("ball");
-    const msg = document.getElementById("message");
-    const connStatus = document.getElementById("connectionStatus");
+<div id="gameScreen" style="display: none;">
+  <div id="connectionStatus">Connecting...</div>
+  <div id="scoreboard">Player1: 0 — Player2: 0</div>
+  <div id="bar"><div id="ball" style="left: 50%;"></div></div>
+  <button id="tapButton">TAP</button>
+  <div id="winMessage"></div>
+</div>
 
-    startBtn.addEventListener("click", () => {
-      myName = nameInput.value.trim() || "Player";
-      socket.send(JSON.stringify({ type: "name", name: myName }));
-      startScreen.classList.add("hidden");
-      gameScreen.classList.remove("hidden");
-    });
+<script>
+let socket;
+let playerIndex = null;
+let names = ["Waiting...", "Waiting..."];
+let scores = [0, 0];
 
-    tapBtn.addEventListener("click", () => {
-      socket.send(JSON.stringify({ type: "tap" }));
-    });
+const startScreen = document.getElementById("startScreen");
+const gameScreen = document.getElementById("gameScreen");
+const nameInput = document.getElementById("nameInput");
+const startButton = document.getElementById("startButton");
+const connectionStatus = document.getElementById("connectionStatus");
+const scoreboard = document.getElementById("scoreboard");
+const tapButton = document.getElementById("tapButton");
+const ball = document.getElementById("ball");
+const winMessage = document.getElementById("winMessage");
 
-    function updateBall(position) {
-      const percent = (position + 5) * 10;
+function updateScoreboard() {
+  scoreboard.textContent = `${names[0]}: ${scores[0]} — ${names[1]}: ${scores[1]}`;
+}
+
+function showWin(winnerIndex) {
+  winMessage.textContent = `${names[winnerIndex]} wins!`;
+  winMessage.style.display = "block";
+  setTimeout(() => {
+    winMessage.style.display = "none";
+  }, 1500);
+}
+
+function connectWebSocket() {
+  connectionStatus.textContent = "Connecting...";
+  socket = new WebSocket("wss://move-ball-server.glitch.me");
+
+  socket.onopen = () => {
+    connectionStatus.textContent = "Connected";
+  };
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === "init") {
+      playerIndex = data.playerIndex;
+      names = data.names;
+      scores = data.scores;
+      updateScoreboard();
+    }
+
+    if (data.type === "names") {
+      names = data.names;
+      updateScoreboard();
+    }
+
+    if (data.type === "ball") {
+      const percent = 50 + (data.position * 10);
       ball.style.left = `${percent}%`;
     }
 
-    function updateScores(names, scores) {
-      document.getElementById("player1-name").textContent = names[0];
-      document.getElementById("player2-name").textContent = names[1];
-      document.getElementById("score1").textContent = scores[0];
-      document.getElementById("score2").textContent = scores[1];
+    if (data.type === "win") {
+      scores = data.scores;
+      updateScoreboard();
+      showWin(data.winner);
     }
 
-    function showMessage(text) {
-      msg.textContent = text;
-      setTimeout(() => {
-        msg.textContent = "";
-      }, 1500);
+    if (data.type === "reset") {
+      scores = [0, 0];
+      names = ["Waiting...", "Waiting..."];
+      updateScoreboard();
+      ball.style.left = "50%";
     }
+  };
 
-    // Connect to WebSocket server
-    socket = new WebSocket("wss://move-ball-server.glitch.me");
+  socket.onclose = () => {
+    connectionStatus.textContent = "Disconnected";
+  };
+}
 
-    socket.onopen = () => {
-      connStatus.textContent = "Connected";
-    };
+startButton.addEventListener("click", () => {
+  const name = nameInput.value.trim();
+  if (name.length === 0) return;
+  startScreen.style.display = "none";
+  gameScreen.style.display = "flex";
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+  connectWebSocket();
 
-      if (data.type === "init") {
-        playerIndex = data.playerIndex;
-        updateScores(data.names, data.scores);
-      }
+  socket.addEventListener("open", () => {
+    socket.send(JSON.stringify({ type: "name", name }));
+  });
+});
 
-      if (data.type === "names") {
-        updateScores(data.names, [0, 0]);
-      }
-
-      if (data.type === "start") {
-        updateBall(data.ball.position);
-      }
-
-      if (data.type === "ball") {
-        updateBall(data.position);
-      }
-
-      if (data.type === "win") {
-        showMessage(data.winner === playerIndex ? "You Win!" : "You Lose!");
-        updateScores(data.names, data.scores);
-      }
-
-      if (data.type === "reset") {
-        location.reload();
-      }
-    };
-
-    // Prevent double-tap zoom on iPhone
-    document.addEventListener('touchstart', function preventZoom(e) {
-      if (e.touches.length > 1) {
-        e.preventDefault();
-      }
-    }, { passive: false });
-
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function preventDoubleTapZoom(e) {
-      const now = new Date().getTime();
-      if (now - lastTouchEnd <= 300) {
-        e.preventDefault();
-      }
-      lastTouchEnd = now;
-    }, false);
-  </script>
-</body>
-</html>
+tapButton.add
