@@ -138,7 +138,7 @@
           scores = msg.scores || [0, 0];
           document.getElementById("startScreen").style.display = "none";
           document.getElementById("gameScreen").style.display = "flex";
-          updateUI(0);
+          updateUI(msg.ball);
         }
 
         if (msg.type === "update") {
@@ -146,7 +146,13 @@
           scores = msg.scores;
           updateUI(msg.ball);
           if (msg.winner !== null) {
-            alert(`${names[msg.winner]} wins!`);
+            const winnerName = names[msg.winner];
+            const loserName = names[1 - msg.winner];
+            if (playerID === msg.winner) {
+              alert(`🎉 ${winnerName} wins!`);
+            } else {
+              alert(`💥 ${loserName} loses!`);
+            }
           }
         }
       };
