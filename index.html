@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Tap Clash</title>
+  <title>Tap Duel</title>
   <style>
     body {
       margin: 0;
-      background: #0c001a;
-      font-family: 'Segoe UI', sans-serif;
+      background: #111;
+      font-family: 'Arial', sans-serif;
       color: #fff;
       display: flex;
       justify-content: center;
@@ -18,17 +18,15 @@
     }
 
     #game-container {
-      width: 100%;
-      max-width: 420px;
-      padding: 20px;
       text-align: center;
+      width: 100%;
+      max-width: 400px;
     }
 
     .title {
-      font-size: 2.2em;
-      color: #9df;
+      font-size: 2em;
+      color: #0ff;
       margin-bottom: 20px;
-      font-weight: bold;
     }
 
     #start-screen input,
@@ -37,89 +35,65 @@
       margin: 5px;
       font-size: 1em;
       width: 80%;
-      border-radius: 8px;
-      border: none;
-    }
-
-    #startButton {
-      background: #9df;
-      color: #000;
-      font-weight: bold;
     }
 
     #bar {
       position: relative;
-      height: 16px;
-      background: #333;
-      margin: 30px 0;
-      border-radius: 8px;
+      height: 20px;
+      background: #444;
+      margin: 20px 0;
+      border-radius: 10px;
     }
 
     #ball {
       position: absolute;
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       background: #f0f;
       border-radius: 50%;
-      top: -3px;
+      top: -2px;
       left: 50%;
       transform: translateX(-50%);
-      transition: left 0.2s ease;
+      transition: left 0.2s;
     }
 
     #tapButton {
-      padding: 14px 28px;
+      padding: 15px 30px;
       font-size: 1.2em;
-      background: #aef;
+      background: #0ff;
       border: none;
-      color: #111;
-      border-radius: 12px;
-      margin-top: 15px;
+      color: #000;
+      border-radius: 10px;
+      margin-top: 20px;
       width: 100%;
-      font-weight: bold;
     }
 
     #names {
       display: flex;
       justify-content: space-between;
       font-size: 1em;
-      padding: 0 10px;
-    }
-
-    #scores {
-      display: flex;
-      justify-content: space-between;
-      font-size: 1.1em;
-      margin: 10px 0;
-      padding: 0 10px;
-      color: #aef;
+      padding: 0 20px;
     }
 
     #message {
-      margin-top: 12px;
+      margin-top: 10px;
       font-size: 1.1em;
-      color: #ff9;
-      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <div id="game-container">
-    <div class="title">Tap Clash</div>
+    <h1 class="title">Tap Duel</h1>
 
     <div id="start-screen">
       <input id="nameInput" type="text" placeholder="Enter your name" />
-      <button id="startButton">Join Game</button>
+      <button id="startButton">Start Game</button>
     </div>
 
     <div id="game-ui" style="display: none;">
       <div id="names">
         <span id="player1Name">Waiting...</span>
         <span id="player2Name">Waiting...</span>
-      </div>
-      <div id="scores">
-        <span id="score1">0</span>
-        <span id="score2">0</span>
       </div>
       <div id="bar">
         <div id="ball"></div>
@@ -130,7 +104,7 @@
   </div>
 
   <script>
-    const socket = new WebSocket(`wss://${location.host}`);
+    const socket = new WebSocket(location.origin.replace(/^http/, 'ws'));
     let playerIndex = null;
 
     const startButton = document.getElementById('startButton');
@@ -141,27 +115,26 @@
     const gameUI = document.getElementById('game-ui');
     const player1Name = document.getElementById('player1Name');
     const player2Name = document.getElementById('player2Name');
-    const score1 = document.getElementById('score1');
-    const score2 = document.getElementById('score2');
     const message = document.getElementById('message');
 
     startButton.addEventListener('click', () => {
       const name = nameInput.value.trim();
       if (!name) return;
-
-      socket.send(JSON.stringify({ type: 'name', name }));
-      startScreen.style.display = 'none';
-      gameUI.style.display = 'block';
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'name', name }));
+        startScreen.style.display = 'none';
+        gameUI.style.display = 'block';
+      }
     });
 
-    // Support both tap and click events
-    const sendTap = (e) => {
-      e.preventDefault();
-      console.log("TAP FIRED"); // Test log
-      socket.send(JSON.stringify({ type: 'tap' }));
-    };
-    tapButton.addEventListener('touchstart', sendTap);
-    tapButton.addEventListener('click', sendTap);
+    tapButton.addEventListener('click', () => {
+      console.log("TAP Fired");
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'tap' }));
+      } else {
+        console.warn("Cannot send, socket is not open.");
+      }
+    });
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -170,7 +143,6 @@
         playerIndex = data.playerIndex;
         player1Name.textContent = data.names[0] || 'Waiting...';
         player2Name.textContent = data.names[1] || 'Waiting...';
-        updateScores(data.scores);
       }
 
       if (data.type === 'names') {
@@ -189,7 +161,6 @@
 
       if (data.type === 'win') {
         message.textContent = data.winner === playerIndex ? 'You win!' : 'You lose!';
-        updateScores(data.scores);
       }
 
       if (data.type === 'reset') {
@@ -197,14 +168,17 @@
       }
     };
 
+    socket.onclose = () => {
+      console.warn('WebSocket closed.');
+    };
+
+    socket.onerror = (err) => {
+      console.error('WebSocket error:', err);
+    };
+
     function updateBall(pos) {
       const percent = 50 + (pos * 10);
       ball.style.left = `${percent}%`;
-    }
-
-    function updateScores(scores) {
-      score1.textContent = scores[0];
-      score2.textContent = scores[1];
     }
   </script>
 </body>
