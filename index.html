@@ -151,7 +151,7 @@
         if (data.type === "start") {
           result.style.display = "none";
           updateBall(data.ball);
-          updateScores([0, 0], currentNames);
+          updateScores(data.scores, data.names || currentNames);
         }
 
         if (data.type === "ball") {
@@ -164,7 +164,6 @@
         }
 
         if (data.type === "reset") {
-          updateScores([0, 0], currentNames);
           updateBall(0);
         }
       };
