@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Neon Tap Duel</title>
+  <title>Tap Clash</title>
   <style>
     body {
       margin: 0;
-      background: #000;
-      font-family: 'Arial', sans-serif;
+      background: #0c001a;
+      font-family: 'Segoe UI', sans-serif;
       color: #fff;
       display: flex;
       justify-content: center;
@@ -18,15 +18,17 @@
     }
 
     #game-container {
-      text-align: center;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
+      padding: 20px;
+      text-align: center;
     }
 
     .title {
-      font-size: 2em;
-      color: #0ff;
+      font-size: 2.2em;
+      color: #9df;
       margin-bottom: 20px;
+      font-weight: bold;
     }
 
     #start-screen input,
@@ -35,65 +37,89 @@
       margin: 5px;
       font-size: 1em;
       width: 80%;
+      border-radius: 8px;
+      border: none;
+    }
+
+    #startButton {
+      background: #9df;
+      color: #000;
+      font-weight: bold;
     }
 
     #bar {
       position: relative;
-      height: 20px;
-      background: #444;
-      margin: 20px 0;
-      border-radius: 10px;
+      height: 16px;
+      background: #333;
+      margin: 30px 0;
+      border-radius: 8px;
     }
 
     #ball {
       position: absolute;
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       background: #f0f;
       border-radius: 50%;
-      top: -2px;
+      top: -3px;
       left: 50%;
       transform: translateX(-50%);
-      transition: left 0.2s;
+      transition: left 0.2s ease;
     }
 
     #tapButton {
-      padding: 15px 30px;
+      padding: 14px 28px;
       font-size: 1.2em;
-      background: #0ff;
+      background: #aef;
       border: none;
-      color: #000;
-      border-radius: 10px;
-      margin-top: 20px;
+      color: #111;
+      border-radius: 12px;
+      margin-top: 15px;
       width: 100%;
+      font-weight: bold;
     }
 
     #names {
       display: flex;
       justify-content: space-between;
       font-size: 1em;
-      padding: 0 20px;
+      padding: 0 10px;
+    }
+
+    #scores {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.1em;
+      margin: 10px 0;
+      padding: 0 10px;
+      color: #aef;
     }
 
     #message {
-      margin-top: 10px;
+      margin-top: 12px;
       font-size: 1.1em;
+      color: #ff9;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <div id="game-container">
-    <h1 class="title">Neon Tap Duel</h1>
+    <div class="title">Tap Clash</div>
 
     <div id="start-screen">
       <input id="nameInput" type="text" placeholder="Enter your name" />
-      <button id="startButton">Start Game</button>
+      <button id="startButton">Join Game</button>
     </div>
 
     <div id="game-ui" style="display: none;">
       <div id="names">
         <span id="player1Name">Waiting...</span>
         <span id="player2Name">Waiting...</span>
+      </div>
+      <div id="scores">
+        <span id="score1">0</span>
+        <span id="score2">0</span>
       </div>
       <div id="bar">
         <div id="ball"></div>
@@ -115,6 +141,8 @@
     const gameUI = document.getElementById('game-ui');
     const player1Name = document.getElementById('player1Name');
     const player2Name = document.getElementById('player2Name');
+    const score1 = document.getElementById('score1');
+    const score2 = document.getElementById('score2');
     const message = document.getElementById('message');
 
     startButton.addEventListener('click', () => {
@@ -126,12 +154,13 @@
       gameUI.style.display = 'block';
     });
 
-    tapButton.addEventListener('pointerdown', (e) => {
+    // Support both tap and click events
+    const sendTap = (e) => {
       e.preventDefault();
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'tap' }));
-      }
-    }, { passive: false });
+      socket.send(JSON.stringify({ type: 'tap' }));
+    };
+    tapButton.addEventListener('touchstart', sendTap);
+    tapButton.addEventListener('click', sendTap);
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -140,6 +169,7 @@
         playerIndex = data.playerIndex;
         player1Name.textContent = data.names[0] || 'Waiting...';
         player2Name.textContent = data.names[1] || 'Waiting...';
+        updateScores(data.scores);
       }
 
       if (data.type === 'names') {
@@ -158,6 +188,7 @@
 
       if (data.type === 'win') {
         message.textContent = data.winner === playerIndex ? 'You win!' : 'You lose!';
+        updateScores(data.scores);
       }
 
       if (data.type === 'reset') {
@@ -168,6 +199,11 @@
     function updateBall(pos) {
       const percent = 50 + (pos * 10);
       ball.style.left = `${percent}%`;
+    }
+
+    function updateScores(scores) {
+      score1.textContent = scores[0];
+      score2.textContent = scores[1];
     }
   </script>
 </body>
