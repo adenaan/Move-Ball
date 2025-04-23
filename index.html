@@ -126,14 +126,12 @@
       gameUI.style.display = 'block';
     });
 
-    tapButton.addEventListener('touchstart', (e) => {
+    tapButton.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      socket.send(JSON.stringify({ type: 'tap' }));
-    });
-
-    tapButton.addEventListener('click', () => {
-      socket.send(JSON.stringify({ type: 'tap' }));
-    });
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'tap' }));
+      }
+    }, { passive: false });
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -168,7 +166,7 @@
     };
 
     function updateBall(pos) {
-      const percent = 50 + pos;
+      const percent = 50 + (pos * 10);
       ball.style.left = `${percent}%`;
     }
   </script>
