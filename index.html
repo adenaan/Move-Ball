@@ -153,13 +153,12 @@
     <div id="title"><img src="https://cdn-icons-png.flaticon.com/512/861/861512.png" alt="soccer" /><span>Soccer Tap Arena</span></div>
     <div id="scoreboard"><span id="p1score">P1: 0</span><span id="p2score">P2: 0</span></div>
 
-    <!-- 🔄 Toggle Button Added Below -->
     <div class="toggle-container">
       <label class="switch">
         <input type="checkbox" id="gameToggle" />
         <span class="slider"></span>
       </label>
-      <label for="gameToggle">Toggle Option</label>
+      <label for="gameToggle">Mute Music</label>
     </div>
 
     <div id="bar"><div id="ball"></div></div>
@@ -299,7 +298,6 @@
       setTimeout(() => (tapCooldown = false), 100);
     };
 
-    // Toggle button logic
     gameToggle.onchange = () => {
       console.log("Toggle is now:", gameToggle.checked);
       // Add custom behavior here
