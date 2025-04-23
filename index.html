@@ -1,64 +1,163 @@
-const ws = new WebSocket(location.origin.replace(/^http/, 'ws'));
-let playerIndex = null;
-let playerNames = [];
-let myName = '';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Neon Push Duel</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
 
-const playersDiv = document.getElementById('players');
-const nameInput = document.getElementById('nameInput');
-const tapBtn = document.getElementById('tapBtn');
-const ballDiv = document.getElementById('ball');
-const messageDiv = document.getElementById('message');
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff;
+    }
 
-nameInput.addEventListener('change', () => {
-  myName = nameInput.value.trim();
-  if (myName) {
-    ws.send(JSON.stringify({ type: 'name', name: myName }));
-  }
-});
+    #nameInput {
+      margin: 10px;
+      padding: 10px;
+      font-size: 1.2rem;
+      border-radius: 8px;
+      border: none;
+      width: 80%;
+      max-width: 300px;
+    }
 
-tapBtn.addEventListener('click', () => {
-  ws.send(JSON.stringify({ type: 'tap' }));
-});
+    #tapButton {
+      background: #0ff;
+      color: #111;
+      font-size: 1.5rem;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 50px;
+      margin-top: 15px;
+      box-shadow: 0 0 10px #0ff;
+      cursor: pointer;
+    }
 
-ws.onmessage = (event) => {
-  const msg = JSON.parse(event.data);
+    #tapButton:active {
+      box-shadow: 0 0 20px #0ff;
+    }
 
-  if (msg.type === 'init') {
-    playerIndex = msg.playerIndex;
-    playerNames = msg.names;
-    updatePlayers();
-  }
+    #ball {
+      font-size: 3rem;
+      margin: 30px 0;
+      letter-spacing: 10px;
+    }
 
-  if (msg.type === 'names') {
-    playerNames = msg.names;
-    updatePlayers();
-  }
+    #players, #message {
+      margin-top: 10px;
+      font-size: 1rem;
+      opacity: 0.9;
+    }
 
-  if (msg.type === 'ball') {
-    ballDiv.textContent = msg.direction === 0 ? '⬅️' : '➡️';
-  }
+    @media (max-width: 500px) {
+      h1 {
+        font-size: 2rem;
+      }
+      #tapButton {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Neon Push Duel</h1>
+  <input id="nameInput" placeholder="Enter your name" />
+  <button id="tapButton">TAP!</button>
+  <div id="ball">⬤</div>
+  <div id="players"></div>
+  <div id="message"></div>
 
-  if (msg.type === 'win') {
-    messageDiv.textContent = `${playerNames[msg.winner]} wins!`;
-  }
+  <script>
+    const ws = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
+    const nameInput = document.getElementById("nameInput");
+    const tapButton = document.getElementById("tapButton");
+    const ball = document.getElementById("ball");
+    const message = document.getElementById("message");
+    const playersDiv = document.getElementById("players");
 
-  if (msg.type === 'start') {
-    messageDiv.textContent = '';
-    ballDiv.textContent = '⚪';
-  }
+    let playerIndex = -1;
+    let playerNames = ["Waiting...", "Waiting..."];
 
-  if (msg.type === 'reset') {
-    messageDiv.textContent = 'Player left. Resetting...';
-    ballDiv.textContent = '⚪';
-    playersDiv.textContent = 'Waiting for players...';
-  }
+    nameInput.addEventListener("change", () => {
+      ws.send(JSON.stringify({ type: "name", name: nameInput.value }));
+    });
 
-  if (msg.type === 'full') {
-    messageDiv.textContent = 'Game full. Please try again later.';
-    tapBtn.disabled = true;
-  }
-};
+    tapButton.addEventListener("click", () => {
+      ws.send(JSON.stringify({ type: "tap" }));
+    });
 
-function updatePlayers() {
-  playersDiv.textContent = `You: ${playerNames[playerIndex] || '...'}. Opponent: ${playerNames[1 - playerIndex] || 'waiting...'}`;
-}
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === "init") {
+        playerIndex = data.playerIndex;
+        playerNames = data.names;
+        updateNames();
+        updateScores(data.scores);
+      }
+
+      if (data.type === "names") {
+        playerNames = data.names;
+        updateNames();
+      }
+
+      if (data.type === "ball") {
+        updateBall(data.position);
+      }
+
+      if (data.type === "win") {
+        updateBall(0);
+        message.textContent = `${playerNames[data.winner]} wins!`;
+        updateScores(data.scores);
+      }
+
+      if (data.type === "reset") {
+        message.textContent = "Player disconnected. Waiting for opponent...";
+        playerNames = ["Waiting...", "Waiting..."];
+        updateNames();
+        updateBall(0);
+      }
+
+      if (data.type === "start") {
+        updateBall(0);
+        message.textContent = "Game started! Tap to push!";
+      }
+
+      if (data.type === "full") {
+        message.textContent = "Game is full. Try again later.";
+        tapButton.disabled = true;
+        nameInput.disabled = true;
+      }
+    };
+
+    function updateNames() {
+      playersDiv.textContent = `${playerNames[0]} vs ${playerNames[1]}`;
+    }
+
+    function updateBall(pos) {
+      const middle = 5;
+      const display = Array(11).fill("–");
+      display[middle + pos] = "⬤";
+      ball.textContent = display.join("");
+    }
+
+    function updateScores(scores) {
+      message.textContent += ` | Score: ${scores[0]} - ${scores[1]}`;
+    }
+  </script>
+</body>
+</html>
