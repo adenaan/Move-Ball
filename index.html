@@ -89,20 +89,75 @@
       color: yellow;
       display: none;
     }
+
+    /* Toggle switch styles */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+      margin: 10px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #888;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #0af;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
   </style>
 </head>
 <body>
   <div id="startScreen">
-    <div id="title"><img src="https://cdn-icons-png.flaticon.com/512/861/861512.png" alt="soccer" /><span>Soccer Tap Arena</span></div>
+    <div id="title">
+      <img src="https://cdn-icons-png.flaticon.com/512/861/861512.png" alt="soccer" />
+      <span>Soccer Tap Arena</span>
+    </div>
     <input type="text" id="nameInput" placeholder="Enter your name" />
-    <button id="rememberToggle">Remember Me: OFF</button>
+    <label class="switch">
+      <input type="checkbox" id="rememberCheckbox">
+      <span class="slider"></span>
+    </label>
+    <div style="margin-top: 5px;">Remember Me</div>
     <button id="startBtn">Start Game</button>
     <div id="status">Connecting to server...</div>
   </div>
 
   <div id="gameScreen" style="display: none;">
-    <div id="title"><img src="https://cdn-icons-png.flaticon.com/512/861/861512.png" alt="soccer" /><span>Soccer Tap Arena</span></div>
-    <div id="scoreboard"><span id="p1score">P1: 0</span><span id="p2score">P2: 0</span></div>
+    <div id="title">
+      <img src="https://cdn-icons-png.flaticon.com/512/861/861512.png" alt="soccer" />
+      <span>Soccer Tap Arena</span>
+    </div>
+    <div id="scoreboard">
+      <span id="p1score">P1: 0</span>
+      <span id="p2score">P2: 0</span>
+    </div>
     <div id="bar"><div id="ball"></div></div>
     <button id="tapButton">TAP</button>
     <div id="result"></div>
@@ -113,6 +168,7 @@
     let playerIndex = null;
     let tapCooldown = false;
     let rememberName = false;
+
     const ballEl = document.getElementById("ball");
     const statusEl = document.getElementById("status");
     const startScreen = document.getElementById("startScreen");
@@ -123,7 +179,7 @@
     const p1score = document.getElementById("p1score");
     const p2score = document.getElementById("p2score");
     const result = document.getElementById("result");
-    const rememberToggle = document.getElementById("rememberToggle");
+    const rememberCheckbox = document.getElementById("rememberCheckbox");
     let currentNames = ["P1", "P2"];
 
     function connect() {
@@ -131,8 +187,8 @@
 
       socket.onopen = () => {
         statusEl.textContent = "Connected! Enter your name to play.";
-        // Clear input on load
         nameInput.value = "";
+        rememberCheckbox.checked = false;
       };
 
       socket.onmessage = (event) => {
@@ -206,9 +262,8 @@
       setTimeout(() => result.style.display = "none", 2500);
     }
 
-    rememberToggle.onclick = () => {
-      rememberName = !rememberName;
-      rememberToggle.textContent = `Remember Me: ${rememberName ? 'ON' : 'OFF'}`;
+    rememberCheckbox.onchange = () => {
+      rememberName = rememberCheckbox.checked;
     };
 
     startBtn.onclick = () => {
