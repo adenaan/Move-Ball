@@ -95,6 +95,10 @@
   <div id="startScreen">
     <div id="title"><img src="https://cdn-icons-png.flaticon.com/512/861/861512.png" alt="soccer" /><span>Soccer Tap Arena</span></div>
     <input type="text" id="nameInput" placeholder="Enter your name" />
+    <label style="font-size: 0.9rem; color: lightgray;">
+      <input type="checkbox" id="rememberCheckbox" />
+      Remember me
+    </label>
     <button id="startBtn">Start Game</button>
     <div id="status">Connecting to server...</div>
   </div>
@@ -121,6 +125,7 @@
     const p1score = document.getElementById("p1score");
     const p2score = document.getElementById("p2score");
     const result = document.getElementById("result");
+    const rememberCheckbox = document.getElementById("rememberCheckbox");
     let currentNames = ["P1", "P2"];
 
     function connect() {
@@ -128,8 +133,14 @@
 
       socket.onopen = () => {
         statusEl.textContent = "Connected! Enter your name to play.";
-        const savedName = localStorage.getItem("playerName");
-        if (savedName) nameInput.value = savedName;
+        const remembered = localStorage.getItem("rememberName") === "true";
+        if (remembered) {
+          const savedName = localStorage.getItem("playerName");
+          if (savedName) {
+            nameInput.value = savedName;
+            rememberCheckbox.checked = true;
+          }
+        }
       };
 
       socket.onmessage = (event) => {
@@ -151,7 +162,7 @@
         if (data.type === "start") {
           result.style.display = "none";
           updateBall(data.ball);
-          updateScores(data.scores, data.names || currentNames);
+          updateScores([0, 0], data.names || currentNames);
         }
 
         if (data.type === "ball") {
@@ -206,7 +217,16 @@
 
     startBtn.onclick = () => {
       const name = nameInput.value.trim() || "Player";
-      localStorage.setItem("playerName", name);
+      const remember = rememberCheckbox.checked;
+
+      if (remember) {
+        localStorage.setItem("playerName", name);
+        localStorage.setItem("rememberName", "true");
+      } else {
+        localStorage.removeItem("playerName");
+        localStorage.setItem("rememberName", "false");
+      }
+
       socket.send(JSON.stringify({ type: "name", name }));
       startScreen.style.display = "none";
       gameScreen.style.display = "flex";
