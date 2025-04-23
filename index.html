@@ -35,7 +35,6 @@
       margin: 5px;
       font-size: 1em;
       width: 80%;
-      touch-action: manipulation;
     }
 
     #bar {
@@ -67,7 +66,6 @@
       border-radius: 10px;
       margin-top: 20px;
       width: 100%;
-      touch-action: manipulation;
     }
 
     #names {
@@ -128,16 +126,13 @@
       gameUI.style.display = 'block';
     });
 
-    function sendTap() {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'tap' }));
-      }
-    }
-
-    tapButton.addEventListener('click', sendTap);
     tapButton.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      sendTap();
+      socket.send(JSON.stringify({ type: 'tap' }));
+    });
+
+    tapButton.addEventListener('click', () => {
+      socket.send(JSON.stringify({ type: 'tap' }));
     });
 
     socket.onmessage = (event) => {
@@ -173,7 +168,7 @@
     };
 
     function updateBall(pos) {
-      const percent = 50 + (pos * 10);
+      const percent = 50 + pos;
       ball.style.left = `${percent}%`;
     }
   </script>
