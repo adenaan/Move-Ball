@@ -2,201 +2,183 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Neon Push Duel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tap Duel</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       font-family: 'Arial', sans-serif;
-      background: #000;
+      background-color: #121212;
       color: #fff;
       overflow: hidden;
+      touch-action: manipulation;
     }
-    .centered {
+    .container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       height: 100vh;
-      text-align: center;
+      justify-content: center;
+      padding: 1em;
+      box-sizing: border-box;
     }
     .title {
-      font-size: 2em;
-      margin-bottom: 20px;
-    }
-    .ball-title {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2em;
+      font-size: 2rem;
+      font-weight: bold;
       margin-bottom: 1em;
     }
-    .ball-title span {
-      margin: 0 10px;
+    .name-entry {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1em;
     }
-    .ball {
-      width: 20px;
-      height: 20px;
-      background: #0ff;
-      border-radius: 50%;
-      box-shadow: 0 0 10px #0ff;
+    input {
+      padding: 0.6em;
+      border-radius: 5px;
+      border: none;
+      font-size: 1rem;
     }
-    #game {
+    button {
+      padding: 0.8em 1.5em;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #00bcd4;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #gameScreen {
       display: none;
       flex-direction: column;
-      height: 100vh;
       justify-content: space-between;
+      height: 100%;
+      width: 100%;
+      text-align: center;
+      position: relative;
     }
     .names {
       display: flex;
-      justify-content: space-between;
-      padding: 10px 20px;
+      justify-content: space-around;
+      margin-top: 1em;
+    }
+    .scoreboard {
       font-size: 1.2em;
     }
     .bar {
       height: 10px;
-      background: #444;
-      margin: auto 0;
+      background: #00bcd4;
+      width: 80%;
+      margin: 1em auto;
       position: relative;
     }
-    .ball-game {
-      position: absolute;
-      top: -15px;
-      width: 30px;
-      height: 30px;
-      background: #0ff;
+    .ball {
+      width: 20px;
+      height: 20px;
+      background: #ff4081;
       border-radius: 50%;
-      box-shadow: 0 0 15px #0ff;
+      position: absolute;
+      top: -5px;
     }
-    #tap {
-      padding: 15px 30px;
-      background: #0ff;
-      border: none;
-      color: #000;
-      font-size: 1.2em;
-      font-weight: bold;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #0ff;
-      margin: 20px auto;
-      display: block;
-      touch-action: manipulation;
+    .tap-btn {
+      margin-bottom: 2em;
+      padding: 1.2em 2em;
+      font-size: 1.2rem;
     }
-    #result {
-      text-align: center;
-      font-size: 1.5em;
-      margin: 10px 0;
-    }
-    input[type="text"] {
-      padding: 10px;
-      font-size: 1em;
-      width: 80%;
-      max-width: 300px;
-      margin: 10px 0;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 1em;
-      margin-top: 10px;
-      cursor: pointer;
-    }
-    .scores {
-      display: flex;
-      justify-content: space-around;
-      padding: 5px;
-      font-size: 1em;
+    .message {
+      margin-top: 1em;
+      font-size: 1.1em;
     }
   </style>
 </head>
 <body>
-  <div class="centered" id="startScreen">
-    <div class="ball-title"><span>Neon</span><div class="ball"></div><span>Clash</span></div>
-    <input type="text" id="nameInput" placeholder="Enter your name" />
-    <button id="startBtn">Start</button>
+  <div class="container" id="startScreen">
+    <div class="title">Tap Duel ⚡</div>
+    <div class="name-entry">
+      <input type="text" id="nameInput" placeholder="Enter your name" />
+      <button id="startBtn">Start</button>
+    </div>
   </div>
 
-  <div id="game">
+  <div id="gameScreen" class="container">
+    <div class="title">Tap Duel ⚡</div>
     <div class="names">
-      <div id="p1Name">Player 1: waiting...</div>
-      <div id="p2Name">Player 2: waiting...</div>
+      <div id="playerOneName">Waiting...</div>
+      <div id="playerTwoName">Waiting...</div>
     </div>
-    <div class="scores">
-      <div id="score1">Wins: 0</div>
-      <div id="score2">Losses: 0</div>
-    </div>
+    <div class="scoreboard" id="scoreDisplay">Score: 0 - 0</div>
     <div class="bar" id="bar">
-      <div class="ball-game" id="ball"></div>
+      <div class="ball" id="ball"></div>
     </div>
-    <div id="result"></div>
-    <button id="tap">TAP</button>
+    <button id="tapBtn" class="tap-btn">TAP!</button>
+    <div class="message" id="resultMessage"></div>
   </div>
 
   <script>
-    const socket = new WebSocket(`wss://${location.host}`);
-    let myId = null;
+    const socket = new WebSocket(
+      location.hostname === "localhost"
+        ? "ws://localhost:3000"
+        : `wss://${location.host}`
+    );
+
     let myName = "";
-    let playerSlot = null;
+    let myPlayer = null;
 
-    const startScreen = document.getElementById('startScreen');
-    const game = document.getElementById('game');
-    const startBtn = document.getElementById('startBtn');
-    const nameInput = document.getElementById('nameInput');
-    const p1Name = document.getElementById('p1Name');
-    const p2Name = document.getElementById('p2Name');
-    const score1 = document.getElementById('score1');
-    const score2 = document.getElementById('score2');
-    const result = document.getElementById('result');
-    const ball = document.getElementById('ball');
-    const bar = document.getElementById('bar');
-
-    let barWidth = window.innerWidth - 60;
-    let ballPos = barWidth / 2;
-    let ballSpeed = 0;
-
-    function updateBall() {
-      ball.style.left = `${ballPos}px`;
-    }
-
-    function clamp(val, min, max) {
-      return Math.max(min, Math.min(max, val));
-    }
+    const startScreen = document.getElementById("startScreen");
+    const gameScreen = document.getElementById("gameScreen");
+    const startBtn = document.getElementById("startBtn");
+    const nameInput = document.getElementById("nameInput");
+    const tapBtn = document.getElementById("tapBtn");
+    const ball = document.getElementById("ball");
+    const bar = document.getElementById("bar");
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const resultMessage = document.getElementById("resultMessage");
+    const playerOneName = document.getElementById("playerOneName");
+    const playerTwoName = document.getElementById("playerTwoName");
 
     startBtn.onclick = () => {
       myName = nameInput.value.trim();
       if (myName.length === 0) return;
+      console.log("Sending join:", myName);
       socket.send(JSON.stringify({ type: "join", name: myName }));
     };
 
-    document.getElementById('tap').addEventListener('click', () => {
+    tapBtn.ontouchstart = tapBtn.onclick = () => {
       socket.send(JSON.stringify({ type: "tap" }));
-    });
+    };
 
     socket.onmessage = (event) => {
       const msg = JSON.parse(event.data);
-
-      if (msg.type === "joined") {
-        playerSlot = msg.slot;
-        startScreen.style.display = 'none';
-        game.style.display = 'flex';
+      if (msg.type === "init") {
+        myPlayer = msg.player;
+        startScreen.style.display = "none";
+        gameScreen.style.display = "flex";
       }
-
       if (msg.type === "state") {
-        p1Name.textContent = `Player 1: ${msg.p1 || 'waiting...'}`;
-        p2Name.textContent = `Player 2: ${msg.p2 || 'waiting...'}`;
-        score1.textContent = `Wins: ${msg.p1Wins || 0}`;
-        score2.textContent = `Losses: ${msg.p2Losses || 0}`;
-        ballPos = clamp(msg.ballPos, 0, barWidth);
-        updateBall();
-      }
+        const barWidth = bar.offsetWidth;
+        const pos = (barWidth - 20) * msg.position;
+        ball.style.left = pos + "px";
 
+        playerOneName.textContent = msg.p1 || "Waiting...";
+        playerTwoName.textContent = msg.p2 || "Waiting...";
+        scoreDisplay.textContent = `Score: ${msg.score1} - ${msg.score2}`;
+      }
       if (msg.type === "result") {
-        result.textContent = msg.text;
+        if (msg.winner === myPlayer) {
+          resultMessage.textContent = "You Win!";
+        } else {
+          resultMessage.textContent = "You Lose!";
+        }
+        setTimeout(() => {
+          resultMessage.textContent = "";
+        }, 2000);
+      }
+      if (msg.type === "error") {
+        alert(msg.message);
       }
     };
-
-    window.addEventListener('resize', () => {
-      barWidth = window.innerWidth - 60;
-      updateBall();
-    });
   </script>
 </body>
 </html>
