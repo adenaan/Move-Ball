@@ -1,197 +1,166 @@
-/* === public/index.html === */
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tap Clash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Move-Ball</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: system-ui, sans-serif;
-      background: #111;
-      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f0f0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       height: 100vh;
     }
+
     h1 {
-      margin-bottom: 0.5em;
-      font-size: 2em;
+      margin-top: 1rem;
+      font-size: 1.8rem;
+      color: #333;
     }
-    #arena {
-      position: relative;
-      width: 80vw;
-      height: 10px;
-      background: #333;
-      margin: 20px 0;
+
+    canvas {
+      background: #ddd;
+      border-radius: 10px;
+      margin: 1rem 0;
     }
-    #ball {
-      position: absolute;
-      top: -8px;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #0ff;
-      transition: left 0.2s ease;
+
+    .info {
+      text-align: center;
+      margin: 0.5rem;
     }
-    #names, #scores {
-      margin: 0.5em;
-    }
-    .tap-button {
-      font-size: 1.5em;
-      padding: 1em 2em;
-      margin: 10px;
-      border: none;
-      border-radius: 8px;
-      background: #444;
-      color: white;
-      cursor: pointer;
-      width: 80vw;
+
+    .tap-btn {
+      width: 90%;
       max-width: 300px;
+      font-size: 1.5rem;
+      padding: 1rem;
+      border: none;
+      border-radius: 10px;
+      background: #007bff;
+      color: white;
+      margin: 1rem auto;
+      display: block;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .tap-btn:active {
+      background: #0056b3;
+    }
+
+    input {
+      font-size: 1.2rem;
+      padding: 0.5rem;
+      width: 80%;
+      margin-top: 0.5rem;
+      border-radius: 5px;
+      border: 1px solid #aaa;
     }
   </style>
 </head>
 <body>
-  <h1>Tap Clash</h1>
-  <div id="names">Waiting for players...</div>
-  <div id="scores">0 - 0</div>
-  <div id="arena">
-    <div id="ball"></div>
+
+  <h1>Move-Ball</h1>
+
+  <canvas id="gameCanvas" width="320" height="100"></canvas>
+
+  <div class="info">
+    <div id="nameInfo">Connecting...</div>
+    <input id="nameInput" placeholder="Enter your name" />
   </div>
-  <button class="tap-button" id="tap">TAP!</button>
+
+  <button class="tap-btn" id="tapBtn">TAP</button>
 
   <script>
-    const ball = document.getElementById("ball");
-    const tapButton = document.getElementById("tap");
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const tapBtn = document.getElementById('tapBtn');
+    const nameInput = document.getElementById('nameInput');
+    const nameInfo = document.getElementById('nameInfo');
+
     const socket = new WebSocket("wss://move-ball-server.glitch.me");
 
-    let myIndex = -1;
+    let playerIndex = null;
+    let ball = { direction: 0, position: 0 };
+    let names = ["Waiting...", "Waiting..."];
+    let scores = [0, 0];
 
-    tapButton.addEventListener("click", () => {
-      console.log("TAP Fired");
-      socket.send(JSON.stringify({ type: "tap" }));
-    });
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    function updateBall(pos) {
-      const clamped = Math.max(-5, Math.min(5, pos));
-      const percent = 50 + clamped * 10;
-      ball.style.left = `${percent}%`;
+      // Draw middle bar
+      ctx.fillStyle = "#bbb";
+      ctx.fillRect(0, 45, canvas.width, 10);
+
+      // Draw ball
+      const x = canvas.width / 2 + ball.position * 30;
+      ctx.beginPath();
+      ctx.arc(x, 50, 10, 0, Math.PI * 2);
+      ctx.fillStyle = "#007bff";
+      ctx.fill();
     }
 
-    socket.addEventListener("message", (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === "init") {
-        myIndex = msg.playerIndex;
-        document.getElementById("names").textContent = msg.names.join(" vs ");
-        document.getElementById("scores").textContent = msg.scores.join(" - ");
-      } else if (msg.type === "names") {
-        document.getElementById("names").textContent = msg.names.join(" vs ");
-      } else if (msg.type === "ball") {
-        updateBall(msg.position);
-      } else if (msg.type === "win") {
-        updateBall(0);
-        document.getElementById("scores").textContent = msg.scores.join(" - ");
-      } else if (msg.type === "reset") {
-        location.reload();
+    tapBtn.addEventListener('click', () => {
+      console.log("TAP Fired");
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "tap" }));
       }
     });
+
+    nameInput.addEventListener('change', () => {
+      const name = nameInput.value.trim();
+      if (socket.readyState === WebSocket.OPEN && name) {
+        socket.send(JSON.stringify({ type: "name", name }));
+      }
+    });
+
+    socket.addEventListener('message', (event) => {
+      const msg = JSON.parse(event.data);
+
+      if (msg.type === "init") {
+        playerIndex = msg.playerIndex;
+        names = msg.names;
+        scores = msg.scores;
+        nameInfo.textContent = `You are ${names[playerIndex]}`;
+      }
+
+      if (msg.type === "names") {
+        names = msg.names;
+        nameInfo.textContent = `You are ${names[playerIndex]}`;
+      }
+
+      if (msg.type === "start") {
+        ball = msg.ball;
+        draw();
+      }
+
+      if (msg.type === "ball") {
+        ball = msg;
+        draw();
+      }
+
+      if (msg.type === "win") {
+        scores = msg.scores;
+        alert(`${names[msg.winner]} wins! Score: ${scores[0]} - ${scores[1]}`);
+      }
+
+      if (msg.type === "reset") {
+        nameInfo.textContent = "Player disconnected. Waiting for restart...";
+      }
+
+      if (msg.type === "full") {
+        alert("Game full. Try again later.");
+      }
+    });
+
+    draw();
   </script>
 </body>
 </html>
-
-
-/* === server.js === */
-const express = require("express");
-const http = require("http");
-const WebSocket = require("ws");
-const path = require("path");
-
-const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-
-app.use(express.static("public"));
-
-let players = [];
-let ball = { direction: 0, position: 0 };
-let scores = [0, 0];
-let gameInProgress = false;
-
-wss.on("connection", (ws) => {
-  if (players.length >= 2) {
-    ws.send(JSON.stringify({ type: "full" }));
-    ws.close();
-    return;
-  }
-
-  const playerIndex = players.length;
-  players.push({ ws, name: `Player ${playerIndex + 1}` });
-  console.log(`Player ${playerIndex + 1} connected`);
-
-  ws.send(JSON.stringify({
-    type: "init",
-    playerIndex,
-    names: players.map((p) => p.name),
-    scores,
-  }));
-
-  if (players.length === 2) startGame();
-
-  ws.on("message", (message) => {
-    try {
-      const data = JSON.parse(message);
-      if (data.type === "tap" && gameInProgress) {
-        if (ball.direction === 0 || ball.direction === 1 - playerIndex) {
-          ball.direction = playerIndex;
-          ball.position += playerIndex === 0 ? -1 : 1;
-
-          if (Math.abs(ball.position) >= 5) {
-            scores[playerIndex]++;
-            gameInProgress = false;
-            broadcast({ type: "win", winner: playerIndex, scores });
-            setTimeout(startGame, 2000);
-          } else {
-            broadcast({
-              type: "ball",
-              direction: ball.direction,
-              position: ball.position,
-            });
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Invalid message:", message);
-    }
-  });
-
-  ws.on("close", () => {
-    players = [];
-    ball = { direction: 0, position: 0 };
-    scores = [0, 0];
-    gameInProgress = false;
-    broadcast({ type: "reset" });
-  });
-});
-
-function broadcast(data) {
-  const json = JSON.stringify(data);
-  players.forEach((p) => {
-    if (p.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(json);
-    }
-  });
-}
-
-function startGame() {
-  ball = { direction: 0, position: 0 };
-  gameInProgress = true;
-  broadcast({ type: "start", ball });
-}
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
