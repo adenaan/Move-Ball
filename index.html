@@ -2,87 +2,88 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>2-Player Ball Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Tap Duel</title>
   <style>
-    * { box-sizing: border-box; }
-    html, body {
+    body {
       margin: 0;
-      font-family: sans-serif;
-      background: #111;
-      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom, #0f0f0f, #1f1f1f);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
       overflow: hidden;
     }
     #startScreen, #gameScreen {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      display: flex;
+      display: none;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
     }
-    #gameScreen { display: none; }
+    #startScreen.active, #gameScreen.active {
+      display: flex;
+    }
     input, button {
       padding: 1em;
-      font-size: 1.2em;
       margin: 0.5em;
+      font-size: 1.2em;
+      border-radius: 10px;
+      border: none;
+      outline: none;
     }
-    #status { margin-top: 0.5em; font-size: 0.9em; color: #aaa; }
-    #scoreboard {
-      position: absolute;
-      top: 10px; left: 50%;
-      transform: translateX(-50%);
+    #status, #scoreBoard, #message {
+      margin: 1em;
       font-size: 1.2em;
     }
     #bar {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      width: 100%;
+      width: 90vw;
       height: 10px;
-      background: linear-gradient(to right, #333, #666, #333);
+      background: #333;
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 2em 0;
     }
     #ball {
-      position: absolute;
-      top: calc(50% - 15px);
-      width: 30px; height: 30px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #ff0, #f80);
-      box-shadow: 0 0 20px 5px #ff0;
-      transition: left 0.2s ease;
-    }
-    #winMsg {
+      background: radial-gradient(circle, #00f0ff, #0077cc);
       position: absolute;
-      top: 40%;
-      width: 100%;
-      text-align: center;
-      font-size: 2em;
-      color: #0f0;
-      display: none;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: left 0.2s;
     }
     #tapBtn {
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      height: 40%;
-      background: rgba(255,255,255,0.05);
+      padding: 1.5em 3em;
+      background: #00cc88;
+      color: #fff;
+      font-size: 1.2em;
+      border-radius: 20px;
       border: none;
+      box-shadow: 0 0 20px #00cc88;
+      margin-top: 2em;
     }
   </style>
 </head>
 <body>
-  <div id="startScreen">
+  <div id="startScreen" class="active">
+    <h1>Tap Duel</h1>
     <input id="nameInput" placeholder="Enter your name" />
     <button id="startBtn">Start</button>
     <div id="status">Connecting...</div>
   </div>
   <div id="gameScreen">
-    <div id="scoreboard"></div>
-    <div id="winMsg"></div>
-    <div id="bar"></div>
-    <div id="ball"></div>
-    <button id="tapBtn"></button>
+    <div id="scoreBoard">Player1: 0 | Player2: 0</div>
+    <div id="bar">
+      <div id="ball"></div>
+    </div>
+    <div id="message"></div>
+    <button id="tapBtn">TAP!</button>
   </div>
 
   <script>
@@ -91,65 +92,73 @@
     const gameScreen = document.getElementById('gameScreen');
     const nameInput = document.getElementById('nameInput');
     const startBtn = document.getElementById('startBtn');
-    const status = document.getElementById('status');
-    const scoreboard = document.getElementById('scoreboard');
-    const ball = document.getElementById('ball');
+    const statusText = document.getElementById('status');
+    const scoreBoard = document.getElementById('scoreBoard');
+    const message = document.getElementById('message');
     const tapBtn = document.getElementById('tapBtn');
-    const winMsg = document.getElementById('winMsg');
-
+    const ball = document.getElementById('ball');
+    
     let playerIndex = null;
     let names = ["Player 1", "Player 2"];
     let scores = [0, 0];
 
-    socket.onopen = () => status.textContent = "Connected";
+    socket.onopen = () => {
+      statusText.textContent = 'Connected';
+    };
 
-    socket.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'init') {
-        playerIndex = msg.playerIndex;
-        names = msg.names;
-        scores = msg.scores;
-      } else if (msg.type === 'names') {
-        names = msg.names;
-        updateScoreboard();
-      } else if (msg.type === 'start') {
-        moveBall(0);
-        winMsg.style.display = 'none';
-      } else if (msg.type === 'ball') {
-        moveBall(msg.position);
-      } else if (msg.type === 'win') {
-        scores = msg.scores;
-        updateScoreboard();
-        winMsg.textContent = (msg.winner === playerIndex) ? 'You Win!' : 'You Lose';
-        winMsg.style.display = 'block';
-        setTimeout(() => winMsg.style.display = 'none', 1500);
-      } else if (msg.type === 'reset') {
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'init') {
+        playerIndex = data.playerIndex;
+        names = data.names;
+        scores = data.scores;
+        updateScore();
+      } else if (data.type === 'names') {
+        names = data.names;
+        updateScore();
+      } else if (data.type === 'ball') {
+        const percent = 50 + data.position * 10;
+        ball.style.left = `${percent}%`;
+      } else if (data.type === 'win') {
+        scores = data.scores;
+        updateScore();
+        showMessage(data.winner === playerIndex ? 'You Win!' : 'You Lose!');
+      } else if (data.type === 'start') {
+        ball.style.left = '50%';
+      } else if (data.type === 'reset') {
         location.reload();
       }
     };
 
-    startBtn.onclick = () => {
-      if (nameInput.value.trim()) {
-        socket.send(JSON.stringify({ type: 'name', name: nameInput.value.trim() }));
-        startScreen.style.display = 'none';
-        gameScreen.style.display = 'block';
-        updateScoreboard();
+    function updateScore() {
+      scoreBoard.textContent = `${names[0]}: ${scores[0]} | ${names[1]}: ${scores[1]}`;
+    }
+
+    function showMessage(msg) {
+      message.textContent = msg;
+      message.style.opacity = '1';
+      setTimeout(() => message.style.opacity = '0', 2000);
+    }
+
+    startBtn.addEventListener('click', () => {
+      const name = nameInput.value.trim();
+      if (name && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'name', name }));
+        startScreen.classList.remove('active');
+        gameScreen.classList.add('active');
       }
-    };
+    });
 
-    tapBtn.ontouchstart = tapBtn.onclick = (e) => {
-      e.preventDefault();
-      socket.send(JSON.stringify({ type: 'tap' }));
-    };
+    tapBtn.addEventListener('click', () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'tap' }));
+      }
+    });
 
-    function updateScoreboard() {
-      scoreboard.textContent = `${names[0]}: ${scores[0]} vs ${names[1]}: ${scores[1]}`;
-    }
-
-    function moveBall(position) {
-      const percent = (position + 5) * 10; // from -5 to +5
-      ball.style.left = `calc(${percent}% - 15px)`;
-    }
+    // iPhone double tap zoom fix
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
   </script>
 </body>
 </html>
