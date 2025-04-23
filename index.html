@@ -1,134 +1,202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Fast Tap Clash</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Neon Push Duel</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
+      font-family: 'Arial', sans-serif;
+      background: #000;
+      color: #fff;
       overflow: hidden;
-      background: #111;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-      -webkit-user-select: none;
-      user-select: none;
-      touch-action: manipulation;
     }
-    #title {
-      text-align: center;
-      font-size: 2.2em;
-      padding: 20px 10px;
-      color: #0ff;
-      text-shadow: 0 0 10px #0ff;
-    }
-    #gameArea {
+    .centered {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       align-items: center;
-      height: 100%;
-      padding: 10px;
-      box-sizing: border-box;
-    }
-    #namesArea, #tapArea, #scoreArea {
+      justify-content: center;
+      height: 100vh;
       text-align: center;
     }
-    .tap-btn {
-      width: 90%;
-      padding: 20px;
-      font-size: 1.5em;
-      border-radius: 10px;
-      border: none;
-      margin: 10px 0;
-      background: #0ff;
-      color: #000;
-      font-weight: bold;
+    .title {
+      font-size: 2em;
+      margin-bottom: 20px;
     }
-    .tap-btn:active {
-      background: #0cc;
+    .ball-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      margin-bottom: 1em;
     }
-    #bar {
-      width: 100%;
-      height: 10px;
-      background: #333;
-      position: relative;
-      margin: 20px 0;
+    .ball-title span {
+      margin: 0 10px;
     }
-    #ball {
-      position: absolute;
-      top: -8px;
+    .ball {
       width: 20px;
       height: 20px;
-      border-radius: 50%;
       background: #0ff;
+      border-radius: 50%;
       box-shadow: 0 0 10px #0ff;
+    }
+    #game {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      justify-content: space-between;
+    }
+    .names {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 20px;
+      font-size: 1.2em;
+    }
+    .bar {
+      height: 10px;
+      background: #444;
+      margin: auto 0;
+      position: relative;
+    }
+    .ball-game {
+      position: absolute;
+      top: -15px;
+      width: 30px;
+      height: 30px;
+      background: #0ff;
+      border-radius: 50%;
+      box-shadow: 0 0 15px #0ff;
+    }
+    #tap {
+      padding: 15px 30px;
+      background: #0ff;
+      border: none;
+      color: #000;
+      font-size: 1.2em;
+      font-weight: bold;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #0ff;
+      margin: 20px auto;
+      display: block;
+      touch-action: manipulation;
+    }
+    #result {
+      text-align: center;
+      font-size: 1.5em;
+      margin: 10px 0;
     }
     input[type="text"] {
       padding: 10px;
-      margin: 10px;
+      font-size: 1em;
       width: 80%;
-      font-size: 1.2em;
-      border-radius: 8px;
-      border: 1px solid #ccc;
+      max-width: 300px;
+      margin: 10px 0;
     }
-    #startBtn {
-      padding: 12px 20px;
-      font-size: 1.2em;
-      margin: 10px;
-      border-radius: 8px;
-      background: #0ff;
-      color: #000;
-      font-weight: bold;
-      border: none;
+    button {
+      padding: 10px 20px;
+      font-size: 1em;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    .scores {
+      display: flex;
+      justify-content: space-around;
+      padding: 5px;
+      font-size: 1em;
     }
   </style>
 </head>
 <body>
-  <div id="title">Fast Tap Clash <span id="titleBall">🔵</span></div>
+  <div class="centered" id="startScreen">
+    <div class="ball-title"><span>Neon</span><div class="ball"></div><span>Clash</span></div>
+    <input type="text" id="nameInput" placeholder="Enter your name" />
+    <button id="startBtn">Start</button>
+  </div>
 
-  <div id="gameArea">
-    <div id="namesArea">
-      <input id="nameInput" placeholder="Enter your name" />
-      <button id="startBtn">Start</button>
+  <div id="game">
+    <div class="names">
+      <div id="p1Name">Player 1: waiting...</div>
+      <div id="p2Name">Player 2: waiting...</div>
     </div>
-
-    <div id="scoreArea" style="display:none">
-      <p><span id="player1Display">Player 1</span> Wins: <span id="p1Score">0</span></p>
-      <p><span id="player2Display">Player 2</span> Wins: <span id="p2Score">0</span></p>
+    <div class="scores">
+      <div id="score1">Wins: 0</div>
+      <div id="score2">Losses: 0</div>
     </div>
-
-    <div id="bar" style="display:none">
-      <div id="ball"></div>
+    <div class="bar" id="bar">
+      <div class="ball-game" id="ball"></div>
     </div>
-
-    <div id="tapArea" style="display:none">
-      <button class="tap-btn" id="tapBtn">TAP!</button>
-    </div>
+    <div id="result"></div>
+    <button id="tap">TAP</button>
   </div>
 
   <script>
-    // This is a placeholder. You should place your client-side WebSocket and game logic here.
-    // Example placeholders for the tap logic
-    document.getElementById('startBtn').addEventListener('click', () => {
-      const name = document.getElementById('nameInput').value.trim();
-      if (!name) return alert('Enter your name');
+    const socket = new WebSocket(`wss://${location.host}`);
+    let myId = null;
+    let myName = "";
+    let playerSlot = null;
 
-      // Simulate game start
-      document.getElementById('namesArea').style.display = 'none';
-      document.getElementById('bar').style.display = 'block';
-      document.getElementById('tapArea').style.display = 'block';
-      document.getElementById('scoreArea').style.display = 'block';
-      document.getElementById('player1Display').textContent = name;
+    const startScreen = document.getElementById('startScreen');
+    const game = document.getElementById('game');
+    const startBtn = document.getElementById('startBtn');
+    const nameInput = document.getElementById('nameInput');
+    const p1Name = document.getElementById('p1Name');
+    const p2Name = document.getElementById('p2Name');
+    const score1 = document.getElementById('score1');
+    const score2 = document.getElementById('score2');
+    const result = document.getElementById('result');
+    const ball = document.getElementById('ball');
+    const bar = document.getElementById('bar');
+
+    let barWidth = window.innerWidth - 60;
+    let ballPos = barWidth / 2;
+    let ballSpeed = 0;
+
+    function updateBall() {
+      ball.style.left = `${ballPos}px`;
+    }
+
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    startBtn.onclick = () => {
+      myName = nameInput.value.trim();
+      if (myName.length === 0) return;
+      socket.send(JSON.stringify({ type: "join", name: myName }));
+    };
+
+    document.getElementById('tap').addEventListener('click', () => {
+      socket.send(JSON.stringify({ type: "tap" }));
     });
 
-    document.getElementById('tapBtn').addEventListener('touchstart', (e) => {
-      e.preventDefault(); // Prevent zooming on double-tap
-      console.log('Tapped');
-      // move ball, update score, etc.
-    }, { passive: false });
+    socket.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+
+      if (msg.type === "joined") {
+        playerSlot = msg.slot;
+        startScreen.style.display = 'none';
+        game.style.display = 'flex';
+      }
+
+      if (msg.type === "state") {
+        p1Name.textContent = `Player 1: ${msg.p1 || 'waiting...'}`;
+        p2Name.textContent = `Player 2: ${msg.p2 || 'waiting...'}`;
+        score1.textContent = `Wins: ${msg.p1Wins || 0}`;
+        score2.textContent = `Losses: ${msg.p2Losses || 0}`;
+        ballPos = clamp(msg.ballPos, 0, barWidth);
+        updateBall();
+      }
+
+      if (msg.type === "result") {
+        result.textContent = msg.text;
+      }
+    };
+
+    window.addEventListener('resize', () => {
+      barWidth = window.innerWidth - 60;
+      updateBall();
+    });
   </script>
 </body>
 </html>
