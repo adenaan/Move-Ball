@@ -91,6 +91,11 @@
       margin-top: 1em;
       font-size: 1.1em;
     }
+    #status {
+      margin-top: 0.5em;
+      font-size: 0.9em;
+      color: #bbb;
+    }
   </style>
 </head>
 <body>
@@ -98,7 +103,8 @@
     <div class="title">Tap Duel ⚡</div>
     <div class="name-entry">
       <input type="text" id="nameInput" placeholder="Enter your name" />
-      <button id="startBtn">Start</button>
+      <button id="startBtn" disabled>Start</button>
+      <div id="status">Connecting to server...</div>
     </div>
   </div>
 
@@ -123,25 +129,30 @@
         : `wss://${location.host}`
     );
 
+    const startBtn = document.getElementById("startBtn");
+    const nameInput = document.getElementById("nameInput");
+    const status = document.getElementById("status");
+    const startScreen = document.getElementById("startScreen");
+    const gameScreen = document.getElementById("gameScreen");
+    const playerOneName = document.getElementById("playerOneName");
+    const playerTwoName = document.getElementById("playerTwoName");
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const bar = document.getElementById("bar");
+    const ball = document.getElementById("ball");
+    const tapBtn = document.getElementById("tapBtn");
+    const resultMessage = document.getElementById("resultMessage");
+
     let myName = "";
     let myPlayer = null;
 
-    const startScreen = document.getElementById("startScreen");
-    const gameScreen = document.getElementById("gameScreen");
-    const startBtn = document.getElementById("startBtn");
-    const nameInput = document.getElementById("nameInput");
-    const tapBtn = document.getElementById("tapBtn");
-    const ball = document.getElementById("ball");
-    const bar = document.getElementById("bar");
-    const scoreDisplay = document.getElementById("scoreDisplay");
-    const resultMessage = document.getElementById("resultMessage");
-    const playerOneName = document.getElementById("playerOneName");
-    const playerTwoName = document.getElementById("playerTwoName");
+    socket.addEventListener("open", () => {
+      status.textContent = "Connected!";
+      startBtn.disabled = false;
+    });
 
     startBtn.onclick = () => {
       myName = nameInput.value.trim();
-      if (myName.length === 0) return;
-      console.log("Sending join:", myName);
+      if (myName.length === 0 || socket.readyState !== 1) return;
       socket.send(JSON.stringify({ type: "join", name: myName }));
     };
 
@@ -166,11 +177,8 @@
         scoreDisplay.textContent = `Score: ${msg.score1} - ${msg.score2}`;
       }
       if (msg.type === "result") {
-        if (msg.winner === myPlayer) {
-          resultMessage.textContent = "You Win!";
-        } else {
-          resultMessage.textContent = "You Lose!";
-        }
+        resultMessage.textContent =
+          msg.winner === myPlayer ? "You Win!" : "You Lose!";
         setTimeout(() => {
           resultMessage.textContent = "";
         }, 2000);
