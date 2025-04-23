@@ -8,54 +8,54 @@
     html, body {
       margin: 0;
       padding: 0;
-      font-family: 'Arial', sans-serif;
-      background: #111;
-      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0e0e1a;
+      color: #fff;
       height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    #startScreen {
-      text-align: center;
-    }
-
-    #startScreen input, #startScreen button {
-      font-size: 1.2rem;
-      padding: 0.6rem 1rem;
-      margin: 0.5rem;
-      border: none;
-      border-radius: 8px;
-    }
-
-    #startScreen input {
-      width: 200px;
-    }
-
-    #startScreen button {
-      background: #28a745;
-      color: white;
-      cursor: pointer;
-    }
-
-    #startScreen button:active {
-      transform: scale(0.98);
-    }
-
-    #gameArea {
+    #startScreen, #gameArea {
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: 100vw;
-      height: 100vh;
+    }
+
+    #startScreen {
+      display: flex;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+    }
+
+    input, button {
+      padding: 0.6rem 1rem;
+      font-size: 1.2rem;
+      border-radius: 8px;
+      border: none;
+      margin: 0.5rem;
+    }
+
+    button {
+      background: #2b8ef8;
+      color: white;
+      cursor: pointer;
+    }
+
+    #status, #playerName, #scoreDisplay {
+      margin: 10px 0;
+      font-size: 1rem;
     }
 
     canvas {
-      background: #222;
-      border: 2px solid #555;
+      background: #1b1b2f;
+      border-radius: 12px;
       margin-top: 20px;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
     }
 
     #tapButton {
@@ -64,22 +64,23 @@
       padding: 1rem 2rem;
       border-radius: 12px;
       border: none;
-      background: #007bff;
+      background: #29d;
       color: white;
       touch-action: manipulation;
     }
   </style>
 </head>
 <body>
-
   <div id="startScreen">
-    <h1>Enter Your Name</h1>
-    <input id="nameInput" type="text" placeholder="Player Name" />
-    <br />
+    <h1>Tap Duel</h1>
+    <input id="nameInput" type="text" placeholder="Enter your name" />
     <button id="startBtn">Start</button>
   </div>
 
   <div id="gameArea">
+    <div id="status">Connecting...</div>
+    <div id="playerName"></div>
+    <div id="scoreDisplay">Score: 0 - 0</div>
     <canvas id="gameCanvas" width="300" height="100"></canvas>
     <button id="tapButton">TAP</button>
   </div>
@@ -87,59 +88,78 @@
   <script>
     const startScreen = document.getElementById('startScreen');
     const gameArea = document.getElementById('gameArea');
-    const startBtn = document.getElementById('startBtn');
     const nameInput = document.getElementById('nameInput');
+    const startBtn = document.getElementById('startBtn');
+    const statusDiv = document.getElementById('status');
+    const playerNameDiv = document.getElementById('playerName');
+    const scoreDisplay = document.getElementById('scoreDisplay');
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const tapButton = document.getElementById('tapButton');
 
     let socket;
     let playerIndex = null;
+    let scores = [0, 0];
     let ballPosition = 0;
+
+    function drawBall() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const center = canvas.width / 2;
+      const step = 25;
+      const x = center + ballPosition * step;
+      const y = canvas.height / 2;
+      ctx.beginPath();
+      const gradient = ctx.createRadialGradient(x, y, 5, x, y, 15);
+      gradient.addColorStop(0, '#00f0ff');
+      gradient.addColorStop(1, '#002244');
+      ctx.fillStyle = gradient;
+      ctx.arc(x, y, 12, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     startBtn.addEventListener('click', () => {
       const name = nameInput.value.trim() || "Player";
       startScreen.style.display = 'none';
       gameArea.style.display = 'flex';
+      statusDiv.textContent = "Connecting...";
+      playerNameDiv.textContent = "";
 
-      socket = new WebSocket("wss://move-ball-server.glitch.me"); // Or your server
+      socket = new WebSocket("wss://move-ball-server.glitch.me");
       socket.addEventListener('open', () => {
+        statusDiv.textContent = "Connected!";
         socket.send(JSON.stringify({ type: "name", name }));
       });
 
       socket.addEventListener('message', (event) => {
         const msg = JSON.parse(event.data);
-        if (msg.type === "init") {
+
+        if (msg.type === 'init') {
           playerIndex = msg.playerIndex;
-        } else if (msg.type === "ball") {
+          scores = msg.scores || [0, 0];
+          scoreDisplay.textContent = `Score: ${scores[0]} - ${scores[1]}`;
+          playerNameDiv.textContent = `You are: ${name}`;
+        } else if (msg.type === 'ball') {
           ballPosition = msg.position;
           drawBall();
+        } else if (msg.type === 'win') {
+          scores = msg.scores;
+          scoreDisplay.textContent = `Score: ${scores[0]} - ${scores[1]}`;
         }
       });
     });
 
-    tapButton.addEventListener('touchstart', (e) => {
+    tapButton.addEventListener('touchstart', e => {
       e.preventDefault();
       if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: "tap" }));
+        socket.send(JSON.stringify({ type: 'tap' }));
       }
     }, { passive: false });
 
     tapButton.addEventListener('click', () => {
       if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: "tap" }));
+        socket.send(JSON.stringify({ type: 'tap' }));
       }
     });
-
-    function drawBall() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = 'white';
-      const center = canvas.width / 2;
-      const step = 25;
-      ctx.beginPath();
-      ctx.arc(center + ballPosition * step, canvas.height / 2, 10, 0, Math.PI * 2);
-      ctx.fill();
-    }
   </script>
 </body>
 </html>
