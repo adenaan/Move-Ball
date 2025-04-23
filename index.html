@@ -2,145 +2,153 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Neon Push Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Neon Duel</title>
   <style>
     body {
       margin: 0;
-      font-family: sans-serif;
-      background: #000;
-      color: #0ff;
+      font-family: 'Arial', sans-serif;
+      background: #0f0f0f;
+      color: #fff;
       text-align: center;
-      display: flex;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-top: 1em;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff;
+    }
+
+    .screen {
+      display: none;
       flex-direction: column;
-      justify-content: space-between;
+      align-items: center;
+      justify-content: center;
       height: 100vh;
     }
-    #arena {
-      font-size: 3rem;
-      margin: 20px;
+
+    #start-screen {
+      display: flex;
     }
-    .tap-zone {
-      flex: 1;
-      display: none;
-      justify-content: center;
-      align-items: center;
+
+    #game-screen {
+      padding-top: 2rem;
     }
-    .tap-btn {
-      font-size: 2rem;
-      padding: 20px;
+
+    input {
+      padding: 0.5rem;
+      font-size: 1rem;
+      margin: 1rem 0;
+      border-radius: 6px;
+      border: none;
+      outline: none;
+    }
+
+    button {
+      padding: 0.6rem 1.2rem;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 8px;
       background: #0ff;
       color: #000;
-      border: none;
-      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
       box-shadow: 0 0 10px #0ff;
     }
-    #startBtn {
-      font-size: 1.5rem;
-      padding: 10px 20px;
-      margin: 10px auto;
-      background: #0f0;
-      color: #000;
-      border: none;
+
+    .tap-zone {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .tap-button {
+      flex: 1;
+      margin: 0 1rem;
+      height: 200px;
+      background: #222;
+      border: 2px solid #0ff;
       border-radius: 10px;
-      box-shadow: 0 0 10px #0f0;
+      font-size: 1.5rem;
+      color: #0ff;
+    }
+
+    #status {
+      margin-top: 1.5rem;
+      font-size: 1.2rem;
     }
   </style>
 </head>
 <body>
-  <h1>Neon Clash</h1>
-  <div id="names">Waiting for players...</div>
-  <div id="score">0 - 0</div>
-  <input id="nameInput" placeholder="Enter your name" />
-  <div id="arena">⬤––––––</div>
-  <div id="message"></div>
+  <h1>Neon Duel</h1>
 
-  <button id="startBtn">Start Game</button>
-
-  <div class="tap-zone" id="tapZoneTop">
-    <button class="tap-btn" id="tapBtnTop">TAP</button>
+  <div id="start-screen" class="screen">
+    <input id="playerName" placeholder="Enter your name" />
+    <button id="startBtn">Start Game</button>
   </div>
-  <div class="tap-zone" id="tapZoneBottom">
-    <button class="tap-btn" id="tapBtnBottom">TAP</button>
+
+  <div id="game-screen" class="screen">
+    <div id="names"></div>
+    <div id="score">Score: 0 - 0</div>
+    <div class="tap-zone">
+      <button id="tapBtn" class="tap-button">TAP!</button>
+    </div>
+    <div id="status"></div>
   </div>
 
   <script>
-    const ws = new WebSocket(location.origin.replace(/^http/, 'ws'));
-    const nameInput = document.getElementById("nameInput");
-    const startBtn = document.getElementById("startBtn");
-    const tapZoneTop = document.getElementById("tapZoneTop");
-    const tapZoneBottom = document.getElementById("tapZoneBottom");
-    const arena = document.getElementById("arena");
-    const namesDiv = document.getElementById("names");
-    const scoreDiv = document.getElementById("score");
-    const message = document.getElementById("message");
+    const ws = new WebSocket(location.origin.replace(/^http/, 'ws').replace(/\/$/, ''));
+    const startBtn = document.getElementById('startBtn');
+    const tapBtn = document.getElementById('tapBtn');
+    const playerNameInput = document.getElementById('playerName');
+    const startScreen = document.getElementById('start-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const namesDiv = document.getElementById('names');
+    const statusDiv = document.getElementById('status');
+    const scoreDiv = document.getElementById('score');
 
-    let playerIndex = -1;
-    let names = ["Waiting...", "Waiting..."];
-    let readyToStart = false;
-
-    nameInput.addEventListener("change", () => {
-      ws.send(JSON.stringify({ type: "name", name: nameInput.value }));
-    });
-
-    startBtn.addEventListener("click", () => {
-      if (readyToStart) {
-        ws.send(JSON.stringify({ type: "tap" }));
-        startBtn.style.display = "none";
-        tapZoneTop.style.display = "flex";
-        tapZoneBottom.style.display = "flex";
-      }
-    });
-
-    document.getElementById("tapBtnTop").onclick = () => {
-      if (playerIndex === 0) ws.send(JSON.stringify({ type: "tap" }));
-    };
-    document.getElementById("tapBtnBottom").onclick = () => {
-      if (playerIndex === 1) ws.send(JSON.stringify({ type: "tap" }));
-    };
+    let playerIndex = null;
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-
-      switch (data.type) {
-        case "init":
-          playerIndex = data.playerIndex;
-          names = data.names;
-          namesDiv.textContent = `${names[0]} vs ${names[1]}`;
-          scoreDiv.textContent = `${data.scores[0]} - ${data.scores[1]}`;
-          readyToStart = (data.names[1] !== "Waiting...");
-          startBtn.disabled = !readyToStart;
-          break;
-
-        case "names":
-          names = data.names;
-          namesDiv.textContent = `${names[0]} vs ${names[1]}`;
-          readyToStart = (names[1] !== "Waiting...");
-          startBtn.disabled = !readyToStart;
-          break;
-
-        case "start":
-          arena.textContent = "⬤––––––";
-          message.textContent = "Game started!";
-          break;
-
-        case "ball":
-          const pos = 3 + data.position;
-          const track = Array(7).fill("–");
-          track[pos] = "⬤";
-          arena.textContent = track.join("");
-          break;
-
-        case "win":
-          scoreDiv.textContent = `${data.scores[0]} - ${data.scores[1]}`;
-          message.textContent = `${names[data.winner]} wins!`;
-          break;
-
-        case "reset":
-          location.reload();
-          break;
+      if (data.type === 'init') {
+        playerIndex = data.playerIndex;
+        updateNames(data.names);
+        scoreDiv.textContent = `Score: ${data.scores[0]} - ${data.scores[1]}`;
+      }
+      if (data.type === 'names') {
+        updateNames(data.names);
+      }
+      if (data.type === 'start') {
+        statusDiv.textContent = "Game Started!";
+      }
+      if (data.type === 'ball') {
+        statusDiv.textContent = `Ball moved to ${data.position}`;
+      }
+      if (data.type === 'win') {
+        statusDiv.textContent = `🏆 ${data.winner === playerIndex ? 'You win!' : 'You lose.'}`;
+        scoreDiv.textContent = `Score: ${data.scores[0]} - ${data.scores[1]}`;
+      }
+      if (data.type === 'reset') {
+        statusDiv.textContent = 'Opponent left. Waiting...';
       }
     };
+
+    startBtn.onclick = () => {
+      const name = playerNameInput.value.trim() || `Player`;
+      ws.send(JSON.stringify({ type: 'name', name }));
+      startScreen.style.display = 'none';
+      gameScreen.style.display = 'block';
+    };
+
+    tapBtn.onclick = () => {
+      ws.send(JSON.stringify({ type: 'tap' }));
+    };
+
+    function updateNames(names) {
+      namesDiv.textContent = `You: ${names[playerIndex]} | Opponent: ${names[1 - playerIndex] || 'Waiting...'}`;
+    }
   </script>
 </body>
 </html>
