@@ -25,7 +25,7 @@
 
     .title {
       font-size: 2em;
-      color: #0ff;
+      color: #61dafb;
       margin-bottom: 20px;
     }
 
@@ -40,7 +40,7 @@
     #bar {
       position: relative;
       height: 20px;
-      background: #444;
+      background: #333;
       margin: 20px 0;
       border-radius: 10px;
     }
@@ -49,18 +49,18 @@
       position: absolute;
       width: 20px;
       height: 20px;
-      background: #f0f;
+      background: #f06292;
       border-radius: 50%;
       top: -2px;
       left: 50%;
       transform: translateX(-50%);
-      transition: left 0.2s;
+      transition: left 0.2s ease-out;
     }
 
     #tapButton {
       padding: 15px 30px;
       font-size: 1.2em;
-      background: #0ff;
+      background: #61dafb;
       border: none;
       color: #000;
       border-radius: 10px;
@@ -104,7 +104,7 @@
   </div>
 
   <script>
-    const socket = new WebSocket(location.origin.replace(/^http/, 'ws'));
+    const socket = new WebSocket(`wss://${location.host}`);
     let playerIndex = null;
 
     const startButton = document.getElementById('startButton');
@@ -120,20 +120,29 @@
     startButton.addEventListener('click', () => {
       const name = nameInput.value.trim();
       if (!name) return;
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'name', name }));
-        startScreen.style.display = 'none';
-        gameUI.style.display = 'block';
-      }
+
+      socket.send(JSON.stringify({ type: 'name', name }));
+      startScreen.style.display = 'none';
+      gameUI.style.display = 'block';
     });
 
-    tapButton.addEventListener('click', () => {
+    function sendTap() {
       console.log("TAP Fired");
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'tap' }));
       } else {
-        console.warn("Cannot send, socket is not open.");
+        console.warn("WebSocket not open");
       }
+    }
+
+    tapButton.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      sendTap();
+    });
+
+    tapButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      sendTap();
     });
 
     socket.onmessage = (event) => {
@@ -166,14 +175,6 @@
       if (data.type === 'reset') {
         location.reload();
       }
-    };
-
-    socket.onclose = () => {
-      console.warn('WebSocket closed.');
-    };
-
-    socket.onerror = (err) => {
-      console.error('WebSocket error:', err);
     };
 
     function updateBall(pos) {
