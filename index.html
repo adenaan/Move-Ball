@@ -115,6 +115,7 @@ let socket;
 let playerIndex = null;
 let names = ["Waiting...", "Waiting..."];
 let scores = [0, 0];
+let playerName = "";
 
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
@@ -142,9 +143,10 @@ function connectWebSocket() {
   connectionStatus.textContent = "Connecting...";
   socket = new WebSocket("wss://move-ball-server.glitch.me");
 
-  socket.onopen = () => {
+  socket.addEventListener("open", () => {
     connectionStatus.textContent = "Connected";
-  };
+    socket.send(JSON.stringify({ type: "name", name: playerName }));
+  });
 
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
@@ -186,16 +188,24 @@ function connectWebSocket() {
 }
 
 startButton.addEventListener("click", () => {
-  const name = nameInput.value.trim();
-  if (name.length === 0) return;
-  startScreen.style.display = "none";
-  gameScreen.style.display = "flex";
+  playerName = nameInput.value.trim();
+  if (playerName.length === 0) return;
 
   connectWebSocket();
 
-  socket.addEventListener("open", () => {
-    socket.send(JSON.stringify({ type: "name", name }));
-  });
+  startScreen.style.display = "none";
+  gameScreen.style.display = "flex";
 });
 
-tapButton.add
+tapButton.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  socket?.send(JSON.stringify({ type: "tap" }));
+}, { passive: false });
+
+tapButton.addEventListener("click", () => {
+  socket?.send(JSON.stringify({ type: "tap" }));
+});
+</script>
+
+</body>
+</html>
