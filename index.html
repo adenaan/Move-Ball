@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Move-Ball</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -16,14 +14,50 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       height: 100vh;
     }
 
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 400px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .visible {
+      display: block;
+    }
+
     h1 {
-      margin-top: 1rem;
-      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      font-size: 2rem;
       color: #333;
+    }
+
+    input {
+      font-size: 1.2rem;
+      padding: 0.5rem;
+      width: 90%;
+      border-radius: 5px;
+      border: 1px solid #aaa;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      font-size: 1.4rem;
+      padding: 0.7rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      background: #007bff;
+      color: white;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      cursor: pointer;
+    }
+
+    button:active {
+      background: #0056b3;
     }
 
     canvas {
@@ -32,61 +66,46 @@
       margin: 1rem 0;
     }
 
-    .info {
-      text-align: center;
-      margin: 0.5rem;
-    }
-
-    .tap-btn {
+    #tapBtn {
       width: 90%;
       max-width: 300px;
-      font-size: 1.5rem;
       padding: 1rem;
-      border: none;
-      border-radius: 10px;
-      background: #007bff;
-      color: white;
-      margin: 1rem auto;
-      display: block;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      font-size: 1.5rem;
     }
 
-    .tap-btn:active {
-      background: #0056b3;
-    }
-
-    input {
-      font-size: 1.2rem;
-      padding: 0.5rem;
-      width: 80%;
-      margin-top: 0.5rem;
-      border-radius: 5px;
-      border: 1px solid #aaa;
+    .info {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      color: #555;
     }
   </style>
 </head>
 <body>
 
-  <h1>Move-Ball</h1>
-
-  <canvas id="gameCanvas" width="320" height="100"></canvas>
-
-  <div class="info">
-    <div id="nameInfo">Connecting...</div>
+  <div id="startScreen" class="screen visible">
+    <h1>Move-Ball</h1>
     <input id="nameInput" placeholder="Enter your name" />
+    <button id="startBtn">Start</button>
   </div>
 
-  <button class="tap-btn" id="tapBtn">TAP</button>
+  <div id="gameScreen" class="screen">
+    <h1>Move-Ball</h1>
+    <div class="info" id="nameInfo">Connecting...</div>
+    <canvas id="gameCanvas" width="320" height="100"></canvas>
+    <button id="tapBtn">TAP</button>
+  </div>
 
   <script>
+    const startScreen = document.getElementById('startScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const nameInput = document.getElementById('nameInput');
+    const startBtn = document.getElementById('startBtn');
+    const nameInfo = document.getElementById('nameInfo');
+    const tapBtn = document.getElementById('tapBtn');
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const tapBtn = document.getElementById('tapBtn');
-    const nameInput = document.getElementById('nameInput');
-    const nameInfo = document.getElementById('nameInfo');
 
-    const socket = new WebSocket("wss://move-ball-server.glitch.me");
-
+    let socket;
     let playerIndex = null;
     let ball = { direction: 0, position: 0 };
     let names = ["Waiting...", "Waiting..."];
@@ -94,12 +113,8 @@
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw middle bar
       ctx.fillStyle = "#bbb";
       ctx.fillRect(0, 45, canvas.width, 10);
-
-      // Draw ball
       const x = canvas.width / 2 + ball.position * 30;
       ctx.beginPath();
       ctx.arc(x, 50, 10, 0, Math.PI * 2);
@@ -107,56 +122,62 @@
       ctx.fill();
     }
 
+    startBtn.addEventListener('click', () => {
+      const name = nameInput.value.trim() || "Player";
+      startScreen.classList.remove('visible');
+      gameScreen.classList.add('visible');
+
+      socket = new WebSocket("wss://move-ball-server.glitch.me");
+
+      socket.addEventListener('open', () => {
+        socket.send(JSON.stringify({ type: "name", name }));
+      });
+
+      socket.addEventListener('message', (event) => {
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === "init") {
+          playerIndex = msg.playerIndex;
+          names = msg.names;
+          scores = msg.scores;
+          nameInfo.textContent = `You are ${names[playerIndex]}`;
+        }
+
+        if (msg.type === "names") {
+          names = msg.names;
+          nameInfo.textContent = `You are ${names[playerIndex]}`;
+        }
+
+        if (msg.type === "start") {
+          ball = msg.ball;
+          draw();
+        }
+
+        if (msg.type === "ball") {
+          ball = msg;
+          draw();
+        }
+
+        if (msg.type === "win") {
+          scores = msg.scores;
+          alert(`${names[msg.winner]} wins! Score: ${scores[0]} - ${scores[1]}`);
+        }
+
+        if (msg.type === "reset") {
+          alert("A player disconnected. Game reset.");
+        }
+
+        if (msg.type === "full") {
+          alert("Game is full. Try again later.");
+          location.reload();
+        }
+      });
+    });
+
     tapBtn.addEventListener('click', () => {
       console.log("TAP Fired");
-      if (socket.readyState === WebSocket.OPEN) {
+      if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: "tap" }));
-      }
-    });
-
-    nameInput.addEventListener('change', () => {
-      const name = nameInput.value.trim();
-      if (socket.readyState === WebSocket.OPEN && name) {
-        socket.send(JSON.stringify({ type: "name", name }));
-      }
-    });
-
-    socket.addEventListener('message', (event) => {
-      const msg = JSON.parse(event.data);
-
-      if (msg.type === "init") {
-        playerIndex = msg.playerIndex;
-        names = msg.names;
-        scores = msg.scores;
-        nameInfo.textContent = `You are ${names[playerIndex]}`;
-      }
-
-      if (msg.type === "names") {
-        names = msg.names;
-        nameInfo.textContent = `You are ${names[playerIndex]}`;
-      }
-
-      if (msg.type === "start") {
-        ball = msg.ball;
-        draw();
-      }
-
-      if (msg.type === "ball") {
-        ball = msg;
-        draw();
-      }
-
-      if (msg.type === "win") {
-        scores = msg.scores;
-        alert(`${names[msg.winner]} wins! Score: ${scores[0]} - ${scores[1]}`);
-      }
-
-      if (msg.type === "reset") {
-        nameInfo.textContent = "Player disconnected. Waiting for restart...";
-      }
-
-      if (msg.type === "full") {
-        alert("Game full. Try again later.");
       }
     });
 
