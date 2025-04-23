@@ -95,6 +95,7 @@
   <div id="startScreen">
     <div id="title"><img src="https://cdn-icons-png.flaticon.com/512/861/861512.png" alt="soccer" /><span>Soccer Tap Arena</span></div>
     <input type="text" id="nameInput" placeholder="Enter your name" />
+    <button id="rememberToggle">Remember Me: OFF</button>
     <button id="startBtn">Start Game</button>
     <div id="status">Connecting to server...</div>
   </div>
@@ -111,6 +112,7 @@
     let socket;
     let playerIndex = null;
     let tapCooldown = false;
+    let rememberName = false;
     const ballEl = document.getElementById("ball");
     const statusEl = document.getElementById("status");
     const startScreen = document.getElementById("startScreen");
@@ -121,6 +123,7 @@
     const p1score = document.getElementById("p1score");
     const p2score = document.getElementById("p2score");
     const result = document.getElementById("result");
+    const rememberToggle = document.getElementById("rememberToggle");
     let currentNames = ["P1", "P2"];
 
     function connect() {
@@ -128,8 +131,8 @@
 
       socket.onopen = () => {
         statusEl.textContent = "Connected! Enter your name to play.";
-        const savedName = localStorage.getItem("playerName");
-        if (savedName) nameInput.value = savedName;
+        // Clear input on load
+        nameInput.value = "";
       };
 
       socket.onmessage = (event) => {
@@ -203,9 +206,18 @@
       setTimeout(() => result.style.display = "none", 2500);
     }
 
+    rememberToggle.onclick = () => {
+      rememberName = !rememberName;
+      rememberToggle.textContent = `Remember Me: ${rememberName ? 'ON' : 'OFF'}`;
+    };
+
     startBtn.onclick = () => {
       const name = nameInput.value.trim() || "Player";
-      localStorage.setItem("playerName", name);
+      if (rememberName) {
+        localStorage.setItem("playerName", name);
+      } else {
+        localStorage.removeItem("playerName");
+      }
       socket.send(JSON.stringify({ type: "name", name }));
       startScreen.style.display = "none";
       gameScreen.style.display = "flex";
