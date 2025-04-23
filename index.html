@@ -1,77 +1,200 @@
-let socket;
-let playerIndex = null;
-let myName = "";
-const startScreen = document.getElementById("start-screen");
-const gameScreen = document.getElementById("game-screen");
-const startBtn = document.getElementById("startBtn");
-const nameInput = document.getElementById("nameInput");
-const tapBtn = document.getElementById("tapBtn");
-const ball = document.getElementById("ball");
-const msg = document.getElementById("message");
-const connStatus = document.getElementById("connectionStatus");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Tap Duel</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      touch-action: manipulation;
+    }
 
-startBtn.addEventListener("click", () => {
-  myName = nameInput.value.trim() || "Player";
-  socket.send(JSON.stringify({ type: "name", name: myName }));
-  startScreen.classList.add("hidden");
-  gameScreen.classList.remove("hidden");
-});
+    .screen {
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+      padding: 20px;
+    }
 
-tapBtn.addEventListener("click", () => {
-  socket.send(JSON.stringify({ type: "tap" }));
-});
+    .hidden {
+      display: none;
+    }
 
-function updateBall(position) {
-  const percent = (position + 5) * 10;
-  ball.style.left = `${percent}%`;
-}
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 1rem;
+      width: 100%;
+      border-radius: 10px;
+      border: none;
+    }
 
-function updateScores(names, scores) {
-  document.getElementById("player1-name").textContent = names[0];
-  document.getElementById("player2-name").textContent = names[1];
-  document.getElementById("score1").textContent = scores[0];
-  document.getElementById("score2").textContent = scores[1];
-}
+    #bar {
+      background: #333;
+      border-radius: 30px;
+      height: 20px;
+      margin: 40px 0;
+      position: relative;
+      overflow: hidden;
+    }
 
-function showMessage(text) {
-  msg.textContent = text;
-  setTimeout(() => {
-    msg.textContent = "";
-  }, 1500);
-}
+    #ball {
+      width: 30px;
+      height: 30px;
+      background: #0ff;
+      border-radius: 50%;
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      box-shadow: 0 0 20px #0ff;
+      transition: left 0.2s ease;
+    }
 
-socket = new WebSocket("wss://move-ball-server.glitch.me");
+    #tapBtn {
+      background: #0f0;
+      font-weight: bold;
+      font-size: 1.2rem;
+      box-shadow: 0 0 10px #0f0;
+    }
 
-socket.onopen = () => {
-  connStatus.textContent = "Connected";
-};
+    #scoreboard {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+    }
 
-socket.onmessage = (event) => {
-  const data = JSON.parse(event.data);
+    #message {
+      font-size: 1.5rem;
+      margin: 10px 0;
+      color: yellow;
+    }
+  </style>
+</head>
+<body>
+  <div id="start-screen" class="screen">
+    <h1>Tap Duel</h1>
+    <input type="text" id="nameInput" placeholder="Enter your name" />
+    <button id="startBtn">Start</button>
+    <p id="connectionStatus">Connecting...</p>
+  </div>
 
-  if (data.type === "init") {
-    playerIndex = data.playerIndex;
-    updateScores(data.names, data.scores);
-  }
+  <div id="game-screen" class="screen hidden">
+    <div id="scoreboard">
+      <span id="player1-name">Player 1</span> <span id="score1">0</span>
+      <span id="player2-name">Player 2</span> <span id="score2">0</span>
+    </div>
+    <div id="bar">
+      <div id="ball"></div>
+    </div>
+    <div id="message"></div>
+    <button id="tapBtn">TAP</button>
+  </div>
 
-  if (data.type === "names") {
-    updateScores(data.names, [0, 0]);
-  }
+  <script>
+    let socket;
+    let playerIndex = null;
+    let myName = "";
+    const startScreen = document.getElementById("start-screen");
+    const gameScreen = document.getElementById("game-screen");
+    const startBtn = document.getElementById("startBtn");
+    const nameInput = document.getElementById("nameInput");
+    const tapBtn = document.getElementById("tapBtn");
+    const ball = document.getElementById("ball");
+    const msg = document.getElementById("message");
+    const connStatus = document.getElementById("connectionStatus");
 
-  if (data.type === "start") {
-    updateBall(data.ball.position);
-  }
+    startBtn.addEventListener("click", () => {
+      myName = nameInput.value.trim() || "Player";
+      socket.send(JSON.stringify({ type: "name", name: myName }));
+      startScreen.classList.add("hidden");
+      gameScreen.classList.remove("hidden");
+    });
 
-  if (data.type === "ball") {
-    updateBall(data.position);
-  }
+    tapBtn.addEventListener("click", () => {
+      socket.send(JSON.stringify({ type: "tap" }));
+    });
 
-  if (data.type === "win") {
-    showMessage(data.winner === playerIndex ? "You Win!" : "You Lose!");
-    updateScores(data.names, data.scores);
-  }
+    function updateBall(position) {
+      const percent = (position + 5) * 10;
+      ball.style.left = `${percent}%`;
+    }
 
-  if (data.type === "reset") {
-    location.reload();
-  }
-};
+    function updateScores(names, scores) {
+      document.getElementById("player1-name").textContent = names[0];
+      document.getElementById("player2-name").textContent = names[1];
+      document.getElementById("score1").textContent = scores[0];
+      document.getElementById("score2").textContent = scores[1];
+    }
+
+    function showMessage(text) {
+      msg.textContent = text;
+      setTimeout(() => {
+        msg.textContent = "";
+      }, 1500);
+    }
+
+    // Connect to WebSocket server
+    socket = new WebSocket("wss://move-ball-server.glitch.me");
+
+    socket.onopen = () => {
+      connStatus.textContent = "Connected";
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === "init") {
+        playerIndex = data.playerIndex;
+        updateScores(data.names, data.scores);
+      }
+
+      if (data.type === "names") {
+        updateScores(data.names, [0, 0]);
+      }
+
+      if (data.type === "start") {
+        updateBall(data.ball.position);
+      }
+
+      if (data.type === "ball") {
+        updateBall(data.position);
+      }
+
+      if (data.type === "win") {
+        showMessage(data.winner === playerIndex ? "You Win!" : "You Lose!");
+        updateScores(data.names, data.scores);
+      }
+
+      if (data.type === "reset") {
+        location.reload();
+      }
+    };
+
+    // Prevent double-tap zoom on iPhone
+    document.addEventListener('touchstart', function preventZoom(e) {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function preventDoubleTapZoom(e) {
+      const now = new Date().getTime();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+  </script>
+</body>
+</html>
