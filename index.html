@@ -157,6 +157,11 @@
     <div id="result"></div>
   </div>
 
+  <!-- Audio Effects -->
+  <audio id="tapSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.wav" preload="auto"></audio>
+  <audio id="goalSound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.wav" preload="auto"></audio>
+  <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-notification-2018.wav" preload="auto"></audio>
+
   <script>
     let socket;
     let playerIndex = null;
@@ -173,6 +178,9 @@
     const p1score = document.getElementById("p1score");
     const p2score = document.getElementById("p2score");
     const result = document.getElementById("result");
+    const tapSound = document.getElementById("tapSound");
+    const goalSound = document.getElementById("goalSound");
+    const winSound = document.getElementById("winSound");
     let currentNames = ["P1", "P2"];
 
     function connect() {
@@ -220,6 +228,7 @@
           result.style.display = "none";
           updateBall(data.ball);
           updateScores(data.scores, data.names || currentNames);
+          goalSound.play();
         }
 
         if (data.type === "ball") {
@@ -229,6 +238,7 @@
         if (data.type === "win") {
           updateScores(data.scores, currentNames);
           showResult(data.winner === playerIndex ? "You Win!" : "You Lose!");
+          winSound.play();
         }
 
         if (data.type === "reset") {
@@ -292,6 +302,7 @@
       e.preventDefault();
       if (tapCooldown) return;
       tapCooldown = true;
+      tapSound.play();
       socket.send(JSON.stringify({ type: "tap" }));
       setTimeout(() => { tapCooldown = false; }, 150);
     };
