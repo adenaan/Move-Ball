@@ -132,11 +132,6 @@
     .switch input:checked + .slider:before {
       transform: translateX(16px);
     }
-    .audio-toggle {
-      margin-top: 15px;
-      font-size: 0.9rem;
-      color: lightgray;
-    }
   </style>
 </head>
 <body>
@@ -150,13 +145,6 @@
       </label>
       <label for="rememberCheckbox">Remember Me</label>
     </div>
-    <div class="remember-container audio-toggle">
-      <label class="switch">
-        <input type="checkbox" id="audioToggle" />
-        <span class="slider"></span>
-      </label>
-      <label for="audioToggle">Music</label>
-    </div>
     <button id="startBtn">Start Game</button>
     <div id="status">Connecting to server...</div>
   </div>
@@ -169,8 +157,10 @@
     <div id="result"></div>
   </div>
 
-  <audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2022/10/19/audio_3ecb5c45e5.mp3?filename=arcade-loop-114973.mp3" loop></audio>
-  <audio id="tapSound" src="https://cdn.pixabay.com/download/audio/2023/03/06/audio_140bcfc4c5.mp3?filename=tap-click-112303.mp3"></audio>
+  <!-- AUDIO ELEMENTS -->
+  <audio id="tapAudio" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f5f1dbf5c4.mp3?filename=click-124467.mp3" preload="auto"></audio>
+  <audio id="goalAudio" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_763c63ed98.mp3?filename=short-success-sound-glockenspiel-treasure-video-game-6346.mp3" preload="auto"></audio>
+  <audio id="winAudio" src="https://cdn.pixabay.com/download/audio/2022/10/25/audio_31ff5e0f6e.mp3?filename=game-win-sound-5-199868.mp3" preload="auto"></audio>
 
   <script>
     let socket;
@@ -183,14 +173,14 @@
     const gameScreen = document.getElementById("gameScreen");
     const nameInput = document.getElementById("nameInput");
     const rememberCheckbox = document.getElementById("rememberCheckbox");
-    const audioToggle = document.getElementById("audioToggle");
-    const bgMusic = document.getElementById("bgMusic");
-    const tapSound = document.getElementById("tapSound");
     const startBtn = document.getElementById("startBtn");
     const tapBtn = document.getElementById("tapButton");
     const p1score = document.getElementById("p1score");
     const p2score = document.getElementById("p2score");
     const result = document.getElementById("result");
+    const tapAudio = document.getElementById("tapAudio");
+    const goalAudio = document.getElementById("goalAudio");
+    const winAudio = document.getElementById("winAudio");
     let currentNames = ["P1", "P2"];
 
     function connect() {
@@ -227,11 +217,9 @@
         if (data.type === "names" && data.names) {
           currentNames = data.names;
           updateScores(null, currentNames);
-          if (currentNames.includes(null)) {
-            statusEl.textContent = "Waiting for other player...";
-          } else {
-            statusEl.textContent = "Game ready!";
-          }
+          statusEl.textContent = data.names.includes(null)
+            ? "Waiting for other player..."
+            : "Game ready!";
         }
 
         if (data.type === "start") {
@@ -242,11 +230,13 @@
 
         if (data.type === "ball") {
           updateBall(data.position);
+          goalAudio.play();
         }
 
         if (data.type === "win") {
           updateScores(data.scores, currentNames);
           showResult(data.winner === playerIndex ? "You Win!" : "You Lose!");
+          winAudio.play();
         }
 
         if (data.type === "reset") {
@@ -294,15 +284,6 @@
       localStorage.setItem("remember", rememberName);
     };
 
-    audioToggle.onchange = () => {
-      if (audioToggle.checked) {
-        bgMusic.volume = 0.4;
-        bgMusic.play().catch(() => {});
-      } else {
-        bgMusic.pause();
-      }
-    };
-
     startBtn.onclick = () => {
       const name = nameInput.value.trim() || "Player";
       if (rememberName) {
@@ -319,9 +300,8 @@
       e.preventDefault();
       if (tapCooldown) return;
       tapCooldown = true;
-      tapSound.currentTime = 0;
-      tapSound.play().catch(() => {});
       socket.send(JSON.stringify({ type: "tap" }));
+      tapAudio.play();
       setTimeout(() => { tapCooldown = false; }, 150);
     };
 
