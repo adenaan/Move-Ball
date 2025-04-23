@@ -3,206 +3,175 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ball Push Showdown</title>
+  <title>Tap Clash</title>
   <style>
-    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(to right, #141e30, #243b55);
-      color: white;
-      text-align: center;
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
       overflow: hidden;
     }
     h1 {
       font-size: 2em;
-      margin-top: 0.5em;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    #gameTitle {
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 10px;
+      margin: 10px 0;
     }
-    h1 .ball {
-      width: 24px;
-      height: 24px;
-      background: white;
+    #ballIcon {
+      width: 20px;
+      height: 20px;
+      background: #0ff;
       border-radius: 50%;
-      margin: 0 10px;
-      box-shadow: 0 0 10px white;
-      animation: pulse 1s infinite alternate;
-    }
-    @keyframes pulse {
-      to { transform: scale(1.3); box-shadow: 0 0 20px white; }
     }
     #startScreen, #gameScreen {
       display: none;
-      padding: 1em;
+      flex-direction: column;
+      align-items: center;
     }
-    .button {
-      background: #4CAF50;
-      border: none;
-      padding: 1em 2em;
-      margin-top: 1em;
-      font-size: 1.2em;
-      border-radius: 10px;
-      color: white;
-      box-shadow: 0 0 10px #4CAF50;
-    }
-    #bar {
-      width: 90%;
-      height: 12px;
-      background: white;
-      border-radius: 6px;
-      margin: 2em auto;
-      position: relative;
-    }
-    #ball {
-      width: 24px;
-      height: 24px;
-      background: red;
-      border-radius: 50%;
-      position: absolute;
-      top: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-      transition: left 0.1s ease;
-    }
-    #players {
+    #startScreen.active, #gameScreen.active {
       display: flex;
-      justify-content: space-around;
-      margin: 1em 0;
-      font-size: 1.1em;
-    }
-    #tapBtn {
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
     }
     input {
-      padding: 0.6em;
+      padding: 10px;
+      margin: 5px;
       font-size: 1em;
-      border-radius: 6px;
-      border: none;
-      margin: 0.5em 0;
     }
-    @media (hover: none) {
-      .button { font-size: 1.4em; }
+    button {
+      padding: 10px 20px;
+      font-size: 1em;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    #bar {
+      width: 80vw;
+      height: 10px;
+      background: #333;
+      position: relative;
+      margin: 30px 0;
+    }
+    #ball {
+      width: 20px;
+      height: 20px;
+      background: #0ff;
+      border-radius: 50%;
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .names {
+      display: flex;
+      justify-content: space-between;
+      width: 80vw;
+    }
+    .scores {
+      display: flex;
+      justify-content: space-between;
+      width: 80vw;
+      margin: 5px 0;
     }
   </style>
 </head>
 <body>
-  <h1><span class="ball"></span>Ball Push Showdown<span class="ball"></span></h1>
+  <div id="gameTitle">
+    <div id="ballIcon"></div>
+    <h1>Tap Clash</h1>
+  </div>
 
-  <div id="startScreen">
-    <input id="nameInput" placeholder="Enter your name" /><br/>
-    <button class="button" id="startBtn">Start</button>
-    <p id="fullMsg" style="color: red; display: none;">Room full. Try again later.</p>
+  <div id="startScreen" class="active">
+    <input type="text" id="nameInput" placeholder="Enter your name" />
+    <button id="startBtn">Start</button>
+    <p id="statusMsg"></p>
   </div>
 
   <div id="gameScreen">
-    <div id="players">
-      <div>
-        <strong id="p1Name">Waiting...</strong><br/>
-        Wins: <span id="p1Wins">0</span> | Losses: <span id="p1Losses">0</span>
-      </div>
-      <div>
-        <strong id="p2Name">Waiting...</strong><br/>
-        Wins: <span id="p2Wins">0</span> | Losses: <span id="p2Losses">0</span>
-      </div>
+    <div class="names">
+      <span id="name1">Waiting...</span>
+      <span id="name2">Waiting...</span>
     </div>
-    <div id="bar"><div id="ball"></div></div>
-    <button class="button" id="tapBtn">TAP!</button>
-    <div id="statusMsg" style="margin-top: 1em; font-size: 1.2em;"></div>
+    <div class="scores">
+      <span id="score1">0</span>
+      <span id="score2">0</span>
+    </div>
+    <div id="bar">
+      <div id="ball"></div>
+    </div>
+    <button id="tapBtn">TAP!</button>
+    <p id="winnerMsg"></p>
   </div>
 
   <script>
-    let socket, playerID, playerName;
+    let socket;
+    let playerID;
+    let playerName;
     let names = ["Waiting...", "Waiting..."];
-    let scores = [
-      { wins: 0, losses: 0 },
-      { wins: 0, losses: 0 }
-    ];
+    let scores = [0, 0];
 
-    const nameInput = document.getElementById("nameInput");
-    const startBtn = document.getElementById("startBtn");
-    const fullMsg = document.getElementById("fullMsg");
-    const gameScreen = document.getElementById("gameScreen");
     const startScreen = document.getElementById("startScreen");
-    const tapBtn = document.getElementById("tapBtn");
-    const ball = document.getElementById("ball");
+    const gameScreen = document.getElementById("gameScreen");
+    const startBtn = document.getElementById("startBtn");
+    const nameInput = document.getElementById("nameInput");
     const statusMsg = document.getElementById("statusMsg");
-
-    const p1Name = document.getElementById("p1Name");
-    const p2Name = document.getElementById("p2Name");
-    const p1Wins = document.getElementById("p1Wins");
-    const p1Losses = document.getElementById("p1Losses");
-    const p2Wins = document.getElementById("p2Wins");
-    const p2Losses = document.getElementById("p2Losses");
+    const tapBtn = document.getElementById("tapBtn");
+    const name1 = document.getElementById("name1");
+    const name2 = document.getElementById("name2");
+    const score1 = document.getElementById("score1");
+    const score2 = document.getElementById("score2");
+    const ball = document.getElementById("ball");
+    const winnerMsg = document.getElementById("winnerMsg");
 
     startBtn.addEventListener("click", () => {
       playerName = nameInput.value.trim();
       if (!playerName) return;
-      connectWebSocket();
-    });
 
-    function connectWebSocket() {
-      socket = new WebSocket("wss://move-ball-server.glitch.me");
+      socket = new WebSocket(`wss://${location.host}`);
 
-      socket.onopen = () => {
-        startScreen.style.display = "none";
-        gameScreen.style.display = "block";
-      };
+      socket.addEventListener("open", () => {
+        socket.send(JSON.stringify({ type: "name", name: playerName }));
+      });
 
-      socket.onmessage = (event) => {
+      socket.addEventListener("message", (event) => {
         const data = JSON.parse(event.data);
-
-        if (data.type === "full") {
-          fullMsg.style.display = "block";
-          gameScreen.style.display = "none";
-          return;
-        }
 
         if (data.type === "init") {
           playerID = data.playerID;
-          socket.send(JSON.stringify({ type: "name", name: playerName }));
-        }
-
-        if (data.type === "names") {
+          names[playerID] = playerName;
+          updateNameDisplay();
+          startScreen.classList.remove("active");
+          gameScreen.classList.add("active");
+        } else if (data.type === "update") {
+          ball.style.left = `${50 + data.ball / 2}%`;
           names = data.names;
-          updateNames();
-        }
-
-        if (data.type === "update") {
-          updateBall(data.ball);
-
+          updateNameDisplay();
           if (data.winner !== null) {
-            const loser = data.winner === 0 ? 1 : 0;
-            scores[data.winner].wins++;
-            scores[loser].losses++;
+            scores[data.winner]++;
             updateScores();
-            statusMsg.textContent =
-              playerID === data.winner ? "You Win!" : "You Lose!";
-          } else {
-            statusMsg.textContent = "";
+            winnerMsg.textContent = data.winner === playerID ? "You Win!" : "You Lose!";
+            setTimeout(() => {
+              winnerMsg.textContent = "";
+            }, 2000);
           }
+        } else if (data.type === "full") {
+          statusMsg.textContent = "Room full. Try again later.";
         }
-      };
-    }
+      });
 
-    function updateNames() {
-      p1Name.textContent = names[0] || "Waiting...";
-      p2Name.textContent = names[1] || "Waiting...";
-    }
-
-    function updateScores() {
-      p1Wins.textContent = scores[0].wins;
-      p1Losses.textContent = scores[0].losses;
-      p2Wins.textContent = scores[1].wins;
-      p2Losses.textContent = scores[1].losses;
-    }
-
-    function updateBall(position) {
-      const percent = 50 + position / 2;
-      ball.style.left = `${percent}%`;
-    }
+      socket.addEventListener("close", () => {
+        statusMsg.textContent = "Disconnected.";
+      });
+    });
 
     tapBtn.addEventListener("click", () => {
       if (socket && socket.readyState === WebSocket.OPEN) {
@@ -210,15 +179,15 @@
       }
     });
 
-    // Show start screen on load
-    startScreen.style.display = "block";
+    function updateNameDisplay() {
+      name1.textContent = names[0] || "Waiting...";
+      name2.textContent = names[1] || "Waiting...";
+    }
 
-    // Prevent zoom on double tap
-    document.addEventListener("touchstart", function (e) {
-      if (e.touches.length > 1) {
-        e.preventDefault();
-      }
-    }, { passive: false });
+    function updateScores() {
+      score1.textContent = scores[0];
+      score2.textContent = scores[1];
+    }
   </script>
 </body>
 </html>
