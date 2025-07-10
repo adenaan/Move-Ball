@@ -1,125 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streaming URL Scraper</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        #streamList {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-        }
-        .stream-item {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            width: 200px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .stream-item:hover {
-            transform: scale(1.05);
-        }
-        .stream-item img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-        }
-        .stream-item a {
-            text-decoration: none;
-            color: #007BFF;
-            font-weight: bold;
-        }
-        #videoPlayerContainer {
-            margin-top: 20px;
-            text-align: center;
-        }
-        #videoPlayer {
-            width: 100%;
-            max-width: 800px;
-            height: auto;
-        }
-        #error {
-            color: red;
-            text-align: center;
-            margin-top: 20px;
-        }
-    </style>
+    <title>Web Scraper</title>
 </head>
 <body>
-    <h1>Streaming URLs</h1>
-    <div id="streamList"></div>
-    <div id="videoPlayerContainer">
-        <video id="videoPlayer" controls>
-            <source id="videoSource" src="" type="application/x-mpegURL">
-            Your browser does not support the video tag.
-        </video>
-    </div>
-    <div id="error"></div>
+    <div id="linksContainer"></div>
+    <iframe id="videoPlayer" width="560" height="315" src="" frameborder="0"></iframe>
 
     <script>
-        // Function to fetch streaming URLs and thumbnails from a proxy server
-        async function fetchStreams() {
-            try {
-                // Replace with your proxy server or API endpoint
-                const response = await fetch('http://your-proxy-server.com/scrape');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch streams from proxy');
-                }
-                const data = await response.json();
-                displayStreams(data);
-            } catch (error) {
-                document.getElementById('error').textContent = `Error: ${error.message}`;
-            }
-        }
+        fetch('https://m.skorkilat3.com/#/pages/live/index')
+            .then(response => response.text())
+            .then(data => {
+                const urls = data.match(/https?:\/\/[\w\-]+(\.[\w\-]+)+([\w\.,@?^=%&:/~\+#-]*[\w@?^=%&/~\+#-])?/g);
+                const linksContainer = document.getElementById('linksContainer');
 
-        // Function to display streams with thumbnails
-        function displayStreams(streams) {
-            const streamList = document.getElementById('streamList');
-            streamList.innerHTML = ''; // Clear existing content
+                urls.forEach(url => {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.textContent = url;
+                    link.onclick = function() {
+                        document.getElementById('videoPlayer').src = url;
+                    };
 
-            streams.forEach(stream => {
-                const streamItem = document.createElement('div');
-                streamItem.className = 'stream-item';
-                streamItem.innerHTML = `
-                    <img src="${stream.thumbnail}" alt="${stream.title || 'Stream Thumbnail'}">
-                    <p><a href="#" data-url="${stream.url}">${stream.title || stream.url}</a></p>
-                `;
-                streamItem.querySelector('a').addEventListener('click', (e) => {
-                    e.preventDefault();
-                    playStream(stream.url);
+                    const thumbnail = document.createElement('img');
+                    thumbnail.src = 'https://www.example.com/thumbnail.jpg';
+
+                    linksContainer.appendChild(link);
+                    linksContainer.appendChild(thumbnail);
+                    linksContainer.appendChild(document.createElement('br'));
                 });
-                streamList.appendChild(streamItem);
-            });
-        }
-
-        // Function to play the stream in the video player
-        function playStream(url) {
-            const videoPlayer = document.getElementById('videoPlayer');
-            const videoSource = document.getElementById('videoSource');
-            videoSource.src = url;
-            videoPlayer.load();
-            videoPlayer.play().catch(error => {
-                document.getElementById('error').textContent = `Error playing video: ${error.message}`;
-            });
-        }
-
-        // Load streams when the page loads
-        window.onload = fetchStreams;
+            })
+            .catch(error => console.error(error));
     </script>
 </body>
 </html>
